@@ -426,9 +426,14 @@ A full read-through audit of all modules; fixes applied:
   background, and gold glow accent. i18n keys `home.greetingMorning`,
   `home.greetingAfternoon`, `home.greetingEvening` (+ NoName variants).
 - **Task form redesign**: add/edit forms now have visible labels ("Task
-  Name", "EXP Reward", "Schedule") with sub-labels ("Start", "End") and
-  clock icons (🕐) on time inputs. Layout restructured into
-  `.task-form__group`, `.task-form__row`, `.task-form__time-wrap`.
+  Name", "EXP Reward", "Schedule") with clock icons (🕐) on time inputs.
+  Layout restructured into `.task-form__group`, `.task-form__row`,
+  `.task-form__time-wrap`. Removed Start/End sub-labels and
+  `task-form__time-field` wrappers — time inputs sit directly in a row
+  with a dash separator. Mobile: EXP and Schedule stack vertically;
+  desktop: side-by-side. Time inputs use `flex: 1` + `min-width: 0` to
+  prevent overflow on narrow screens. `@media (min-width: 520px)` for
+  desktop layout (auto-width time inputs).
 - **Year at a Glance display-only**: tiles changed from `<button>` to
   `<div>` — no longer clickable; the month input + Generate button remains
   the way to load reports.

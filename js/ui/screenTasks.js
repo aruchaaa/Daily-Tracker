@@ -51,21 +51,6 @@ function buildAddForm(container) {
   const endInput = el("input", { type: "time", class: "input input--time" });
   const errorMsg = el("p", { class: "form-error" });
 
-  const startTimeGroup = el("div", { class: "task-form__time-field" }, [
-    el("span", { class: "task-form__time-label", text: t("tasks.labelStart") }),
-    el("div", { class: "task-form__time-wrap" }, [
-      el("span", { class: "task-form__time-icon", text: "\uD83D\uDD50" }),
-      startInput,
-    ]),
-  ]);
-  const endTimeGroup = el("div", { class: "task-form__time-field" }, [
-    el("span", { class: "task-form__time-label", text: t("tasks.labelEnd") }),
-    el("div", { class: "task-form__time-wrap" }, [
-      el("span", { class: "task-form__time-icon", text: "\uD83D\uDD50" }),
-      endInput,
-    ]),
-  ]);
-
   const form = el(
     "form",
     {
@@ -122,16 +107,22 @@ function buildAddForm(container) {
         nameInput,
       ]),
       el("div", { class: "task-form__row" }, [
-        el("div", { class: "task-form__group task-form__group--small" }, [
+        el("div", { class: "task-form__group" }, [
           el("label", { class: "task-form__label", text: t("tasks.labelExp") }),
           expInput,
         ]),
-        el("div", { class: "task-form__group task-form__group--time" }, [
+        el("div", { class: "task-form__group" }, [
           el("label", { class: "task-form__label", text: t("tasks.labelSchedule") }),
           el("div", { class: "task-form__time-row" }, [
-            startTimeGroup,
+            el("div", { class: "task-form__time-wrap" }, [
+              el("span", { class: "task-form__time-icon", text: "\uD83D\uDD50" }),
+              startInput,
+            ]),
             el("span", { class: "task-form__time-sep", text: "\u2013" }),
-            endTimeGroup,
+            el("div", { class: "task-form__time-wrap" }, [
+              el("span", { class: "task-form__time-icon", text: "\uD83D\uDD50" }),
+              endInput,
+            ]),
           ]),
         ]),
       ]),
@@ -269,21 +260,6 @@ function enterEditMode(row, task, container) {
   endInput.value = task.endTime || "";
   const errorMsg = el("p", { class: "form-error" });
 
-  const startTimeGroup = el("div", { class: "task-form__time-field" }, [
-    el("span", { class: "task-form__time-label", text: t("tasks.labelStart") }),
-    el("div", { class: "task-form__time-wrap" }, [
-      el("span", { class: "task-form__time-icon", text: "\uD83D\uDD50" }),
-      startInput,
-    ]),
-  ]);
-  const endTimeGroup = el("div", { class: "task-form__time-field" }, [
-    el("span", { class: "task-form__time-label", text: t("tasks.labelEnd") }),
-    el("div", { class: "task-form__time-wrap" }, [
-      el("span", { class: "task-form__time-icon", text: "\uD83D\uDD50" }),
-      endInput,
-    ]),
-  ]);
-
   const saveBtn = el("button", {
     class: "btn btn--primary",
     type: "button",
@@ -346,16 +322,22 @@ function enterEditMode(row, task, container) {
       nameInput,
     ]),
     el("div", { class: "task-form__row" }, [
-      el("div", { class: "task-form__group task-form__group--small" }, [
+      el("div", { class: "task-form__group" }, [
         el("label", { class: "task-form__label", text: t("tasks.labelExp") }),
         expInput,
       ]),
-      el("div", { class: "task-form__group task-form__group--time" }, [
+      el("div", { class: "task-form__group" }, [
         el("label", { class: "task-form__label", text: t("tasks.labelSchedule") }),
         el("div", { class: "task-form__time-row" }, [
-          startTimeGroup,
+          el("div", { class: "task-form__time-wrap" }, [
+            el("span", { class: "task-form__time-icon", text: "\uD83D\uDD50" }),
+            startInput,
+          ]),
           el("span", { class: "task-form__time-sep", text: "\u2013" }),
-          endTimeGroup,
+          el("div", { class: "task-form__time-wrap" }, [
+            el("span", { class: "task-form__time-icon", text: "\uD83D\uDD50" }),
+            endInput,
+          ]),
         ]),
       ]),
     ]),
