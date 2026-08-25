@@ -9,6 +9,18 @@ export async function renderTasks(container) {
   container.innerHTML = "";
   const tasks = await tasksRepo.getAllTasks();
 
+  // Scheduled tasks always sorted by time; unscheduled ones follow in
+  // manual (drag) order — same logic as dailyTracker so Home and Tasks
+  // show the same sequence.
+  tasks.sort((a, b) => {
+    if (a.startTime && b.startTime) return a.startTime.localeCompare(b.startTime);
+    if (a.startTime) return -1;
+    if (b.startTime) return 1;
+    const ka = a.sortOrder !== undefined ? a.sortOrder : Date.parse(a.createdAt) || 0;
+    const kb = b.sortOrder !== undefined ? b.sortOrder : Date.parse(b.createdAt) || 0;
+    return ka - kb;
+  });
+
   const list = el("div", { class: "task-manage-list" });
   if (tasks.length === 0) {
     list.appendChild(
@@ -335,7 +347,10 @@ function initDrag(listEl) {
     if (!state) return;
     state.row.classList.remove("task-manage-row--dragging");
     state.row.style.cssText = "";
+    // Only persist the order of unscheduled tasks (those with a drag handle).
+    // Scheduled tasks keep their time-based order and are never reordered.
     const ids = [...listEl.querySelectorAll(".task-manage-row")]
+      .filter((r) => r.querySelector(".drag-handle"))
       .map((r) => r.dataset.taskId)
       .filter(Boolean);
     if (ids.length) {
