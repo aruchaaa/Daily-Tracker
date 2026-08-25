@@ -1,0 +1,1708 @@
+/* ============================== Level panel ============================== */
+
+.level-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  /* Deliberately a fixed small radius, NOT var(--radius-lg) — this panel
+     has a sharp-cornered bracket accent (below), and a sharp 90° bracket
+     only sits flush against a nearly-square corner. Themes with a large
+     radius here left a visible gap between the bracket and the actual
+     rounded border. Kept in sync with .task-list / .profile-name-card,
+     the other two bracketed panels. */
+  border-radius: 3px;
+  padding: 16px;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+/* Frame-corner accent: a small reusable "menu box" signature, applied only
+   to primary panels (not every repeated card) so it reads as intentional. */
+.level-panel::before,
+.level-panel::after,
+.task-list::before,
+.task-list::after,
+.profile-name-card::before,
+.profile-name-card::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+}
+
+.level-panel::before,
+.task-list::before,
+.profile-name-card::before {
+  top: 0;
+  left: 0;
+  border-top: 2px solid var(--gold);
+  border-left: 2px solid var(--gold);
+}
+
+.level-panel::after,
+.task-list::after,
+.profile-name-card::after {
+  bottom: 0;
+  right: 0;
+  border-bottom: 2px solid var(--gold);
+  border-right: 2px solid var(--gold);
+}
+
+.level-badge-link {
+  display: block;
+  text-decoration: none;
+  border-radius: inherit;
+}
+
+.level-badge {
+  /* Per-theme size: each badge shape reaches a different distance from
+     center (octagon furthest diagonally). The gold fill here IS the
+     "border" — a plain CSS border doesn't properly trace an angled
+     clip-path polygon (it's fundamentally a rectangle concept), so instead
+     the outer shape is solid gold and the inner layer below sits inset by
+     the padding amount, leaving a clean ring on every side regardless of
+     how many corners the shape has. */
+  width: var(--badge-size, 76px);
+  height: var(--badge-size, 76px);
+  flex-shrink: 0;
+  padding: 2px;
+  clip-path: var(--badge-clip);
+  border-radius: var(--badge-radius);
+  /* The gold fill here IS the "border" — a plain CSS border doesn't
+     properly trace an angled clip-path polygon (it's fundamentally a
+     rectangle concept), so instead the outer shape is solid gold and the
+     inner layer below sits inset by the padding amount, leaving a clean
+     ring on every side regardless of how many corners the shape has. */
+  background: var(--gold);
+  box-shadow: 0 0 0 3px var(--bg-raised), 0 0 0 4px var(--panel-border-soft),
+    0 0 14px color-mix(in srgb, var(--gold) 30%, transparent);
+  transition: box-shadow 0.2s ease, clip-path 0.25s ease, border-radius 0.25s ease;
+}
+
+.level-badge__inner {
+  width: 100%;
+  height: 100%;
+  clip-path: var(--badge-clip);
+  border-radius: var(--badge-radius);
+  background: linear-gradient(155deg, var(--panel) 0%, var(--bg-raised) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.level-badge-link:hover .level-badge,
+.level-badge-link:focus-visible .level-badge {
+  box-shadow: 0 0 0 3px var(--bg-raised), 0 0 0 4px var(--gold-dim),
+    0 0 20px color-mix(in srgb, var(--gold) 50%, transparent);
+}
+
+.level-badge__tag {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--ink-dim);
+  font-weight: 700;
+}
+
+.level-badge__num {
+  font-family: var(--font-stat);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1.2;
+}
+
+.level-panel__bar-area {
+  flex: 1;
+  min-width: 0;
+}
+
+.level-panel__exp-text {
+  font-family: var(--font-stat);
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+
+/* Signature element: segmented tick gauge, not a smooth gradient bar. */
+.exp-bar {
+  position: relative;
+  height: 20px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background-color: var(--panel);
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--gold-dim) 0px,
+    var(--gold-dim) 7px,
+    var(--panel) 7px,
+    var(--panel) 9px
+  );
+}
+
+.exp-bar__fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background-color: var(--gold-dim);
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--gold) 0px,
+    var(--gold) 7px,
+    var(--gold-dim) 7px,
+    var(--gold-dim) 9px
+  );
+  box-shadow: 0 0 8px color-mix(in srgb, var(--gold) 45%, transparent);
+  transition: width 0.5s ease;
+}
+
+/* ============================== EXP trend chart ============================ */
+
+.exp-trend-wrap {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px 10px;
+}
+
+.exp-trend-chart {
+  width: 100%;
+  height: 90px;
+  display: block;
+  overflow: visible;
+}
+
+.trend-bar-label {
+  font-family: var(--font-stat);
+  font-size: 10px;
+  fill: var(--ink);
+}
+
+.exp-trend-bar {
+  fill: var(--gold-dim);
+}
+
+.exp-trend-bar--today {
+  fill: var(--gold);
+}
+
+.exp-trend-caption {
+  font-size: 11px;
+  color: var(--ink-dim);
+  text-align: center;
+  margin-top: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sleep-trend-bar {
+  fill: var(--mint-dim);
+}
+
+.sleep-trend-bar--today {
+  fill: var(--mint);
+}
+
+/* =============================== Backup banner ============================= */
+
+.backup-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--danger-dim);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.backup-banner__text {
+  flex: 1;
+  color: var(--ink);
+}
+
+.backup-banner__link {
+  color: var(--danger);
+  font-weight: 700;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.backup-banner__dismiss {
+  border: none;
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+/* ================================ Task list =============================== */
+
+.task-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px; /* see .level-panel comment — fixed to match its bracket accent */
+  overflow: hidden;
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-border-soft);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.task-row:last-child {
+  border-bottom: none;
+}
+
+.task-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--mint);
+  flex-shrink: 0;
+}
+
+.task-row__name {
+  flex: 1;
+  font-size: 15px;
+}
+
+.task-row__exp {
+  font-family: var(--font-stat);
+  font-size: 13px;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.task-row__time {
+  font-size: 11px;
+  color: var(--ink-dim);
+  font-family: var(--font-stat);
+  margin-left: 6px;
+}
+
+.task-row--done {
+  background: var(--bg-raised);
+}
+
+.task-row--done .task-row__name {
+  color: var(--ink-dim);
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-faint);
+}
+
+.task-row--done .task-row__exp {
+  color: var(--mint);
+}
+
+.form-error {
+  flex-basis: 100%;
+  color: var(--danger);
+  font-size: 12px;
+  margin: 4px 0 0;
+  min-height: 14px;
+}
+
+.today-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-border-soft);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+}
+
+.today-summary__value {
+  font-family: var(--font-stat);
+  color: var(--gold);
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+/* ================================== Forms ================================= */
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--panel-border);
+  background: var(--bg-raised);
+  color: var(--ink);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 -2px 0 rgba(0, 0, 0, 0.22);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.btn:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.btn--primary {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #1a1408;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+}
+
+.btn--danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+  box-shadow: none;
+}
+
+.input {
+  border: 1px solid var(--panel-border);
+  background: var(--bg-raised);
+  color: var(--ink);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  min-width: 0;
+}
+
+.input--small {
+  width: 80px;
+}
+
+.chip {
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  padding: 5px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.chip--on {
+  border-color: var(--mint);
+  color: var(--mint);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--mint) 35%, transparent);
+}
+
+.chip--off {
+  border-color: var(--ink-faint);
+  color: var(--ink-faint);
+}
+
+/* ============================== Manage tasks =============================== */
+
+.task-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.task-form .input:first-child {
+  flex: 1;
+  min-width: 140px;
+}
+
+.input--time {
+  width: 104px;
+}
+
+.task-manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.task-manage-row--inactive {
+  opacity: 0.55;
+}
+
+.task-manage-row__name {
+  flex: 1;
+  min-width: 90px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* This row is crowded (name + EXP + Active chip + Edit + Delete), unlike
+   Home's checklist row — so the time badge gets its own line here rather
+   than fighting for space inline and wrapping mid-value. */
+.task-manage-row__name .task-row__time {
+  display: block;
+  margin-left: 0;
+  margin-top: 2px;
+}
+
+.task-manage-row__exp {
+  font-family: var(--font-stat);
+  color: var(--gold);
+  font-size: 13px;
+}
+
+.task-manage-row__name--link {
+  cursor: pointer;
+}
+
+.task-manage-row__name--link:hover,
+.task-manage-row__name--link:focus-visible {
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+}
+
+/* One-line preview of the task note (full text lives on the detail
+   screen); ellipsis keeps a long note from breaking the row layout. */
+.task-manage-row__notes {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-btn {
+  border: none;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.icon-btn--danger {
+  color: var(--danger);
+}
+
+/* ================================= History ================================= */
+
+.history-picker {
+  margin-bottom: 16px;
+}
+
+.history-date-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.history-total {
+  font-family: var(--font-stat);
+  color: var(--gold);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border-soft);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+
+.history-item__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-item__notes {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-item__exp {
+  font-family: var(--font-stat);
+  color: var(--mint);
+  flex-shrink: 0;
+}
+
+/* Same breathing room as the Report screen's export button (which is
+   spaced by the card that follows it); here the list is the last sibling. */
+.history-result .btn {
+  margin-top: 16px;
+}
+
+/* ================================== Report ================================= */
+
+.report-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.report-controls .input {
+  flex: 1;
+}
+
+.report-header {
+  text-align: center;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.report-header__eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.report-header__title {
+  font-family: var(--font-stat);
+  font-size: 22px;
+  font-weight: 700;
+  margin: 6px 0 2px;
+  color: var(--ink);
+}
+
+.report-header__subtitle {
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+.report-footer {
+  display: none;
+}
+
+.completion-meter {
+  margin-bottom: 18px;
+}
+
+.completion-meter__label {
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin-bottom: 6px;
+  text-align: center;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.completion-meter__track {
+  height: 14px;
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-border);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.completion-meter__fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 100px;
+  transition: width 0.4s ease;
+}
+
+.tally-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tally-row__label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.tally-row__name {
+  font-weight: 600;
+}
+
+.tally-row__count {
+  font-family: var(--font-stat);
+  color: var(--gold);
+  font-size: 12px;
+}
+
+.tally-bar {
+  height: 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-border-soft);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.tally-bar__fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 100px;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.report-stat {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  text-align: center;
+}
+
+.report-stat__value {
+  font-family: var(--font-stat);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.report-stat__label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-top: 4px;
+}
+
+.grade-aplus,
+.grade-a {
+  color: var(--mint) !important;
+}
+
+.grade-b {
+  color: var(--gold) !important;
+}
+
+.grade-c {
+  color: var(--amber) !important;
+}
+
+.grade-d {
+  color: var(--danger) !important;
+}
+
+/* ================================= Profile ================================= */
+
+.profile-name-card {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 3px; /* see .level-panel comment — fixed to match its bracket accent */
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.profile-name-card__label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.profile-name-card__row {
+  display: flex;
+  gap: 8px;
+}
+
+.profile-name-card__row .input {
+  flex: 1;
+}
+
+.profile-subheading {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin: 22px 0 10px;
+  font-weight: 700;
+}
+
+/* ================================== Sleep =================================== */
+
+.sleep-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.sleep-card__label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.sleep-card__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sleep-card__row span {
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+/* ================================== Moment =================================== */
+
+.moment-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.moment-textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  font-family: var(--font-ui);
+  margin: 8px 0 10px;
+  line-height: 1.4;
+}
+
+/* ================================= Task detail ================================ */
+
+.back-link {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.back-link:hover,
+.back-link:focus-visible {
+  color: var(--gold);
+}
+
+.task-detail-time {
+  font-family: var(--font-stat);
+  color: var(--ink-dim);
+  font-size: 13px;
+  margin: -12px 0 16px;
+}
+
+.heatmap-wrap {
+  overflow-x: auto;
+  padding: 6px 0;
+}
+
+.heatmap-svg {
+  display: block;
+}
+
+.heatmap-month-label {
+  fill: var(--ink-faint);
+  font-family: var(--font-stat);
+  font-size: 9px;
+}
+
+.heatmap-day-label {
+  fill: var(--ink-faint);
+  font-family: var(--font-stat);
+  font-size: 9px;
+}
+
+.heatmap-cell {
+  fill: var(--panel-border-soft);
+}
+
+.heatmap-cell--done {
+  fill: var(--mint);
+}
+
+.heatmap-cell--today {
+  stroke: var(--gold);
+  stroke-width: 1.5;
+}
+
+.heatmap-caption {
+  margin-top: 6px;
+  font-family: var(--font-stat);
+  font-size: 11px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* ================================= Custom accent =============================== */
+
+.accent-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.color-picker-input {
+  width: 48px;
+  height: 40px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+/* ================================= Settings ================================= */
+
+.settings-section {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.settings-section h3 {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.settings-desc {
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin-bottom: 12px;
+}
+
+.settings-section .input {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.settings-status {
+  font-size: 13px;
+  color: var(--mint);
+  min-height: 18px;
+}
+
+.theme-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--panel-border);
+  background: var(--bg-raised);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.theme-option--active {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+.theme-option__swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid var(--panel-border);
+  background: conic-gradient(var(--bg) 0deg 120deg, var(--gold) 120deg 240deg, var(--mint) 240deg 360deg);
+}
+
+.theme-option__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.theme-option__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.theme-option__blurb {
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+
+.theme-option__check {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+/* ============================ Theme structural overrides ==================== */
+/* Only what CSS variables can't elegantly express: border weight and the
+   corner-bracket glow. Badge shape is already handled by --badge-clip /
+   --badge-radius above (no override needed here). */
+
+/* Adventurer's Log used to get a thicker 2px border here for a "bound
+   ledger" feel, but that shifted the bracket accent's effective inset
+   relative to the border's outer edge (position:absolute brackets sit at
+   the padding edge, so border-width changes their apparent alignment) —
+   removed in favor of the circular badge / serif type / parchment colors
+   already carrying that theme's identity on their own. */
+
+[data-theme="cyberpunk"] .level-panel::before,
+[data-theme="cyberpunk"] .level-panel::after,
+[data-theme="cyberpunk"] .task-list::before,
+[data-theme="cyberpunk"] .task-list::after,
+[data-theme="cyberpunk"] .profile-name-card::before,
+[data-theme="cyberpunk"] .profile-name-card::after {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--gold) 70%, transparent));
+}
+
+/* ============================== Level-up burst ============================== */
+
+@keyframes level-up-flash {
+  0% {
+    filter: brightness(1) saturate(1);
+    transform: scale(1);
+  }
+  30% {
+    filter: brightness(1.7) saturate(1.4);
+    transform: scale(1.14);
+  }
+  65% {
+    filter: brightness(1.25) saturate(1.15);
+    transform: scale(1.06);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+    transform: scale(1);
+  }
+}
+
+.level-badge--level-up {
+  animation: level-up-flash 0.9s ease;
+}
+
+/* ============================== Daily target card =========================== */
+
+.target-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.target-card__ring {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.percent-ring {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.percent-ring__track {
+  stroke: var(--panel-border-soft);
+  stroke-width: 6;
+}
+
+.percent-ring__progress {
+  stroke: var(--mint);
+  stroke-width: 6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--mint) 50%, transparent));
+}
+
+.target-card__ring-value {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-stat);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--mint);
+}
+
+.target-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.target-card__label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.target-card__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.target-card__row .input--small {
+  width: 70px;
+}
+
+.target-card__value {
+  font-family: var(--font-stat);
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+/* ================================ Toasts ==================================== */
+
+.toast-host {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--nav-height) + var(--safe-bottom) + 14px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 60;
+  pointer-events: none;
+  width: min(90vw, 420px);
+}
+
+.toast {
+  max-width: 100%;
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-border);
+  border-left: 3px solid var(--gold);
+  color: var(--ink);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.toast--show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast--success {
+  border-left-color: var(--mint);
+}
+
+.toast--error {
+  border-left-color: var(--danger);
+}
+
+/* ============================= Confirm dialog =============================== */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 3, 12, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 70;
+  padding: 24px;
+  animation: dialog-fade 0.18s ease;
+}
+
+@keyframes dialog-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dialog {
+  width: min(100%, 360px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  animation: dialog-pop 0.2s ease;
+}
+
+@keyframes dialog-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.dialog__title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.dialog__message {
+  font-size: 13px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.dialog__input {
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ================================= Calendar ================================= */
+
+.history-calendar {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-head {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--ink-faint);
+  padding: 4px 0 8px;
+}
+
+.cal-cell {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+  color: var(--ink-dim);
+  font-family: var(--font-stat);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  appearance: none;
+  transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.cal-cell:active {
+  transform: scale(0.92);
+}
+
+.cal-cell--blank {
+  background: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+
+.cal-cell--done-1 {
+  background: color-mix(in srgb, var(--mint) 22%, var(--bg-raised));
+  color: var(--ink);
+}
+
+.cal-cell--done-2 {
+  background: color-mix(in srgb, var(--mint) 40%, var(--bg-raised));
+  color: var(--ink);
+}
+
+.cal-cell--done-3 {
+  background: color-mix(in srgb, var(--mint) 58%, var(--bg-raised));
+  color: var(--ink);
+}
+
+.cal-cell--done-4 {
+  background: color-mix(in srgb, var(--mint) 78%, var(--bg-raised));
+  color: var(--ink);
+}
+
+.cal-cell--today {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px var(--gold);
+}
+
+.cal-cell--selected {
+  border-color: var(--mint);
+  box-shadow: inset 0 0 0 1px var(--mint);
+}
+
+/* =============================== Task reorder =============================== */
+
+.reorder-btn {
+  border: 1px solid var(--panel-border-soft);
+  background: var(--bg-raised);
+  color: var(--ink-dim);
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.reorder-btn:hover,
+.reorder-btn:focus-visible {
+  color: var(--gold);
+  border-color: var(--gold-dim);
+}
+
+/* ============================= Task row pop ================================ */
+
+@keyframes task-row-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.task-row--pop {
+  animation: task-row-pop 0.3s ease;
+}
+
+/* =============================== Empty states =============================== */
+
+.empty-state--icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 16px;
+}
+
+.empty-state__icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 4px;
+  color: var(--gold-dim);
+}
+
+.empty-state__icon svg {
+  width: 100%;
+  height: 100%;
+  stroke: currentColor;
+  fill: none;
+}
+
+.empty-state__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.empty-state__hint {
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+
+/* ================================ Task notes ================================ */
+
+.notes-textarea {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  font-family: var(--font-ui);
+  line-height: 1.4;
+  margin: 8px 0 10px;
+}
+
+/* ================================ Quick add ================================= */
+/* (removed with quick-add from Home; tasks are added in Manage Tasks) */
+
+/* =============================== Toast action =============================== */
+
+.toast__action {
+  flex-shrink: 0;
+  border: 1px solid var(--gold-dim);
+  background: transparent;
+  color: var(--gold);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  cursor: pointer;
+  /* The toast host is click-transparent so toasts never block the page
+     underneath — re-enable pointer events just for the action button. */
+  pointer-events: auto;
+}
+
+.toast__action:hover,
+.toast__action:focus-visible {
+  background: var(--gold-dim);
+  color: var(--bg);
+}
+
+/* ============================== Achievements ================================ */
+
+.ach-section {
+  margin-bottom: 8px;
+}
+
+.ach-counter {
+  font-size: 12px;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+.ach-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.ach-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  opacity: 0.55;
+  text-align: center;
+}
+
+.ach-tile--unlocked {
+  opacity: 1;
+  border-color: var(--gold-dim);
+  box-shadow: inset 0 0 0 1px var(--gold-dim);
+}
+
+.ach-tile__icon {
+  /* Fixed box + centering so every badge glyph sits at the same spot;
+     the per-glyph font-size is set inline (JS measures each icon's real
+     bounding box) so visually they render at a consistent size. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--ink-dim);
+}
+
+.ach-tile--unlocked .ach-tile__icon {
+  color: var(--gold);
+}
+
+.ach-tile__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ach-tile__hint {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--ink-dim);
+}
+
+/* =============================== Year at a glance ============================ */
+
+.year-section {
+  margin-top: 8px;
+}
+
+.year-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.year-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.year-tile:hover,
+.year-tile:focus-visible {
+  border-color: var(--gold-dim);
+}
+
+.year-tile--current {
+  border-color: var(--gold-dim);
+  box-shadow: inset 0 0 0 1px var(--gold-dim);
+}
+
+.year-tile--empty {
+  opacity: 0.55;
+}
+
+.year-tile__month {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.year-tile__pct {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.year-tile--empty .year-tile__pct {
+  color: var(--ink-dim);
+}
+
+/* ============================ Onboarding overlay =========================== */
+
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 3, 12, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+  padding: 24px;
+  animation: onboarding-fade-in 0.35s ease;
+}
+
+@keyframes onboarding-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.onboarding-overlay--fade {
+  animation: onboarding-fade-out 0.4s ease forwards;
+}
+
+@keyframes onboarding-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.onboarding-card {
+  width: min(100%, 360px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px 24px;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  animation: onboarding-pop 0.3s ease;
+}
+
+@keyframes onboarding-pop {
+  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.onboarding-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.onboarding-title {
+  font-family: var(--font-stat);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.onboarding-desc {
+  font-size: 13px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.onboarding-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 22px;
+  text-align: left;
+}
+
+.onboarding-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+}
+
+.onboarding-step__icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.onboarding-step__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.onboarding-step__desc {
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.4;
+}
+
+.onboarding-btn {
+  width: 100%;
+}
+
+/* ============================== Drag to reorder ============================ */
+
+.task-manage-row {
+  position: relative;
+}
+
+.drag-handle {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  color: var(--ink-faint);
+  font-size: 16px;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.drag-handle:hover {
+  color: var(--gold);
+  background: var(--bg-raised);
+}
+
+.task-manage-row--dragging {
+  opacity: 0.85;
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  transition: box-shadow 0.15s ease;
+}
+
+.task-manage-row--dragging .drag-handle {
+  cursor: grabbing;
+  color: var(--gold);
+}
+
+/* ============================ Print: hide chrome ============================ */
+
+@media print {
+  .toast-host,
+  .dialog-overlay,
+  .year-section,
+  .report-controls {
+    display: none !important;
+  }
+}
