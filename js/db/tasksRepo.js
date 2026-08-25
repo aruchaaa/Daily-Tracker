@@ -58,8 +58,26 @@ export async function deleteTask(id) {
 
 export async function getAllTasks() {
   const db = await openDB();
-  const tx = db.transaction("tasks", "readonly");
-  const tasks = await promisifyRequest(tx.objectStore("tasks").getAll());
+  const tx = db.transaction("tasks", "readwrite");
+  const store = tx.objectStore("tasks");
+  const tasks = await promisifyRequest(store.getAll());
+
+  // Re-derive sortOrder for scheduled tasks so tasks created before the
+  // sortOrder system (or edited without triggering the updateTask path)
+  // still sort by time.  Persists the fix so subsequent reads are fast.
+  let changed = false;
+  for (const task of tasks) {
+    if (task.startTime) {
+      const correct = timeToSortOrder(task.startTime);
+      if (task.sortOrder !== correct) {
+        task.sortOrder = correct;
+        store.put(task);
+        changed = true;
+      }
+    }
+  }
+  if (changed) await txDone(tx);
+
   return tasks.sort(compareTasks);
 }
 

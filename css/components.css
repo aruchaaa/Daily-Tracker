@@ -1036,6 +1036,16 @@
   animation: level-up-flash 0.9s ease;
 }
 
+/* ============================== Home greeting ============================== */
+
+.home-greeting {
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--text-secondary, var(--text));
+  opacity: 0.85;
+  padding: 4px 0 2px;
+}
+
 /* ============================== Daily target card =========================== */
 
 .target-card {

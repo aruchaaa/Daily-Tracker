@@ -17,12 +17,13 @@ export async function renderHome(container, { justLeveledUp = false, justChecked
   container.innerHTML = "";
 
   const today = getTodayDateString();
-  const [allTasks, lifetimeExp, lastBackupAt, sleepHours, dailyTarget] = await Promise.all([
+  const [allTasks, lifetimeExp, lastBackupAt, sleepHours, dailyTarget, charName] = await Promise.all([
     tasksRepo.getAllTasks(),
     metaRepo.getLifetimeExp(),
     metaRepo.getLastBackupAt(),
     sleepRepo.getSleepHours(today),
     metaRepo.getDailyTargetExp(),
+    metaRepo.getCharacterName(),
   ]);
   const state = await dailyTracker.getTodayState(allTasks);
   const progress = getLevelProgress(lifetimeExp);
@@ -31,6 +32,7 @@ export async function renderHome(container, { justLeveledUp = false, justChecked
   container.append(
     ...(banner ? [banner] : []),
     buildLevelPanel(progress, { clickable: true, levelUp: justLeveledUp }),
+    buildGreeting(charName),
     buildTargetCard(state.totalExpToday, dailyTarget, container),
     el("h2", { class: "section-title", text: t("home.todayTasks") }),
     buildTaskList(state, progress, container, justCheckedId),
@@ -126,6 +128,17 @@ function buildBackupBanner(lastBackupAt, lifetimeExp, taskCount, container) {
       },
     }),
   ]);
+}
+
+function buildGreeting(name) {
+  const h = new Date().getHours();
+  const key = h < 12
+    ? (name ? "home.greetingMorning" : "home.greetingMorningNoName")
+    : h < 18
+      ? (name ? "home.greetingAfternoon" : "home.greetingAfternoonNoName")
+      : (name ? "home.greetingEvening" : "home.greetingEveningNoName");
+  const text = name ? t(key, { name }) : t(key);
+  return el("div", { class: "home-greeting", text });
 }
 
 function buildTaskList(state, progress, container, justCheckedId) {
