@@ -41,18 +41,32 @@ function buildAddForm(container) {
   });
   const expInput = el("input", {
     type: "number",
-    placeholder: t("tasks.expPlaceholder"),
     class: "input input--small",
     required: true,
     min: "1",
     max: "1000",
     value: "10",
   });
-  const startInput = el("input", { type: "time", class: "input input--time", title: t("tasks.startPlaceholder") });
-  const endInput = el("input", { type: "time", class: "input input--time", title: t("tasks.endPlaceholder") });
+  const startInput = el("input", { type: "time", class: "input input--time" });
+  const endInput = el("input", { type: "time", class: "input input--time" });
   const errorMsg = el("p", { class: "form-error" });
 
-  return el(
+  const startTimeGroup = el("div", { class: "task-form__time-field" }, [
+    el("span", { class: "task-form__time-label", text: t("tasks.labelStart") }),
+    el("div", { class: "task-form__time-wrap" }, [
+      el("span", { class: "task-form__time-icon", text: "\uD83D\uDD50" }),
+      startInput,
+    ]),
+  ]);
+  const endTimeGroup = el("div", { class: "task-form__time-field" }, [
+    el("span", { class: "task-form__time-label", text: t("tasks.labelEnd") }),
+    el("div", { class: "task-form__time-wrap" }, [
+      el("span", { class: "task-form__time-icon", text: "\uD83D\uDD50" }),
+      endInput,
+    ]),
+  ]);
+
+  const form = el(
     "form",
     {
       class: "task-form",
@@ -102,8 +116,30 @@ function buildAddForm(container) {
         }
       },
     },
-    [nameInput, expInput, startInput, endInput, el("button", { type: "submit", class: "btn btn--primary", text: t("tasks.add") }), errorMsg]
+    [
+      el("div", { class: "task-form__group" }, [
+        el("label", { class: "task-form__label", text: t("tasks.labelName") }),
+        nameInput,
+      ]),
+      el("div", { class: "task-form__row" }, [
+        el("div", { class: "task-form__group task-form__group--small" }, [
+          el("label", { class: "task-form__label", text: t("tasks.labelExp") }),
+          expInput,
+        ]),
+        el("div", { class: "task-form__group task-form__group--time" }, [
+          el("label", { class: "task-form__label", text: t("tasks.labelSchedule") }),
+          el("div", { class: "task-form__time-row" }, [
+            startTimeGroup,
+            el("span", { class: "task-form__time-sep", text: "\u2013" }),
+            endTimeGroup,
+          ]),
+        ]),
+      ]),
+      el("button", { type: "submit", class: "btn btn--primary", text: t("tasks.add") }),
+      errorMsg,
+    ]
   );
+  return form;
 }
 
 function buildTaskRow(task, container) {
@@ -227,11 +263,26 @@ function enterEditMode(row, task, container) {
     min: "1",
     max: "1000",
   });
-  const startInput = el("input", { type: "time", class: "input input--time", title: t("tasks.startPlaceholder") });
-  const endInput = el("input", { type: "time", class: "input input--time", title: t("tasks.endPlaceholder") });
+  const startInput = el("input", { type: "time", class: "input input--time" });
+  const endInput = el("input", { type: "time", class: "input input--time" });
   startInput.value = task.startTime || "";
   endInput.value = task.endTime || "";
   const errorMsg = el("p", { class: "form-error" });
+
+  const startTimeGroup = el("div", { class: "task-form__time-field" }, [
+    el("span", { class: "task-form__time-label", text: t("tasks.labelStart") }),
+    el("div", { class: "task-form__time-wrap" }, [
+      el("span", { class: "task-form__time-icon", text: "\uD83D\uDD50" }),
+      startInput,
+    ]),
+  ]);
+  const endTimeGroup = el("div", { class: "task-form__time-field" }, [
+    el("span", { class: "task-form__time-label", text: t("tasks.labelEnd") }),
+    el("div", { class: "task-form__time-wrap" }, [
+      el("span", { class: "task-form__time-icon", text: "\uD83D\uDD50" }),
+      endInput,
+    ]),
+  ]);
 
   const saveBtn = el("button", {
     class: "btn btn--primary",
@@ -289,7 +340,28 @@ function enterEditMode(row, task, container) {
     onclick: () => renderTasks(container),
   });
 
-  row.append(nameInput, expInput, startInput, endInput, saveBtn, cancelBtn, errorMsg);
+  row.append(
+    el("div", { class: "task-form__group" }, [
+      el("label", { class: "task-form__label", text: t("tasks.labelName") }),
+      nameInput,
+    ]),
+    el("div", { class: "task-form__row" }, [
+      el("div", { class: "task-form__group task-form__group--small" }, [
+        el("label", { class: "task-form__label", text: t("tasks.labelExp") }),
+        expInput,
+      ]),
+      el("div", { class: "task-form__group task-form__group--time" }, [
+        el("label", { class: "task-form__label", text: t("tasks.labelSchedule") }),
+        el("div", { class: "task-form__time-row" }, [
+          startTimeGroup,
+          el("span", { class: "task-form__time-sep", text: "\u2013" }),
+          endTimeGroup,
+        ]),
+      ]),
+    ]),
+    el("div", { class: "task-form__actions" }, [saveBtn, cancelBtn]),
+    errorMsg
+  );
 }
 
 function initDrag(listEl) {

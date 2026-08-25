@@ -420,6 +420,34 @@ A full read-through audit of all modules; fixes applied:
   dengan" → "Bentrok sama", "Gagal mengurungkan" → "Gagal batalin").
   Fixed typo "riwayas" → "riwayat".
 
+### Home greeting + task form redesign + audit fixes
+- **Home greeting**: time-of-day greeting card at the top of Home (morning/
+  afternoon/evening) with icon (☀️/🌙), character name if set, gradient
+  background, and gold glow accent. i18n keys `home.greetingMorning`,
+  `home.greetingAfternoon`, `home.greetingEvening` (+ NoName variants).
+- **Task form redesign**: add/edit forms now have visible labels ("Task
+  Name", "EXP Reward", "Schedule") with sub-labels ("Start", "End") and
+  clock icons (🕐) on time inputs. Layout restructured into
+  `.task-form__group`, `.task-form__row`, `.task-form__time-wrap`.
+- **Year at a Glance display-only**: tiles changed from `<button>` to
+  `<div>` — no longer clickable; the month input + Generate button remains
+  the way to load reports.
+- **Robustness audit fixes**:
+  - `backupManager.js`: `skipped` was not destructured from
+    `normalizeBackup()` in `importBackup` and `importBackupMerge`, causing
+    a ReferenceError on every completed import. Fixed by adding `skipped`
+    to the destructuring.
+  - `components.css`: `.home-greeting__text` used undefined `var(--text)`;
+    changed to `var(--ink)`.
+  - `toast.js`: confirm dialog "type to confirm" placeholder was hardcoded
+    English; now uses `t("confirm.typePlaceholder")`. Required adding
+    `import { t }` to toast.js.
+  - `screenProfile.js`: name save lacked try/catch — added error handling.
+  - `screenReport.js`: moment save lacked try/catch — added error handling.
+  - `screenSettings.js`: removed unused `scheduleTodayReminders` import.
+  - `components.css`: removed dead `.reorder-btn` CSS, merged duplicate
+    `.task-manage-row` rules.
+
 ### Testing notes
 - `verify5.mjs` assertions are deliberately time-zone- and clock-aware:
   avoid asserting exact badge sets when early-bird/night-owl depend on the

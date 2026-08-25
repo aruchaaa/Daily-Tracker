@@ -73,16 +73,10 @@ async function buildYearGrid(monthInput, resultArea, year) {
     if (isCurrent) classes.push("year-tile--current");
 
     return el(
-      "button",
+      "div",
       {
-        type: "button",
         class: classes.join(" "),
         title: report.totalExpEarned === 0 ? t("report.noActivity") : t("report.completionPct", { pct: report.completionPercent }),
-        onclick: () => {
-          playOpen();
-          monthInput.value = ym;
-          loadReport(ym, resultArea);
-        },
       },
       [
         el("span", { class: "year-tile__month", text: MONTH_SHORT[m - 1] }),
@@ -193,9 +187,14 @@ function buildMomentSection(yearMonth, currentText) {
     type: "button",
     text: t("report.saveMoment"),
     onclick: async () => {
-      await metaRepo.setMemorableMoment(yearMonth, textarea.value.trim());
-      playSave();
-      showToast(t("report.momentSaved"), "success");
+      try {
+        await metaRepo.setMemorableMoment(yearMonth, textarea.value.trim());
+        playSave();
+        showToast(t("report.momentSaved"), "success");
+      } catch (err) {
+        playError();
+        showToast(t("report.csvFailed") + ": " + err.message, "error");
+      }
     },
   });
 

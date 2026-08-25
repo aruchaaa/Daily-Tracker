@@ -41,7 +41,7 @@ export async function exportBackup() {
  *  in one transaction — either the whole restore lands, or none of it does. */
 export async function importBackup(file) {
   const backup = await parseBackupFile(file);
-  const { tasks, completions, metaRows, sleepRows } = normalizeBackup(backup);
+  const { tasks, completions, metaRows, sleepRows, skipped } = normalizeBackup(backup);
 
   const db = await openDB();
   const tx = db.transaction(["tasks", "completions", "meta", "sleepLogs"], "readwrite");
@@ -78,7 +78,7 @@ export async function importBackup(file) {
  *  snapshots afterward, so the total can't drift from its records. */
 export async function importBackupMerge(file) {
   const backup = await parseBackupFile(file);
-  const { tasks, completions, metaRows, sleepRows } = normalizeBackup(backup);
+  const { tasks, completions, metaRows, sleepRows, skipped } = normalizeBackup(backup);
 
   const db = await openDB();
 

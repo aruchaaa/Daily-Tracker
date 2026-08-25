@@ -1,5 +1,6 @@
 import { el } from "./components.js";
 import { playUndo, playToggle } from "../core/sounds.js";
+import { t } from "../core/i18n.js";
 
 /* ------------------------------- Toasts -------------------------------- */
 
@@ -88,7 +89,7 @@ export function showConfirmDialog({ title, message, confirmText = "Confirm", can
             ? el("input", {
                 type: "text",
                 class: "input dialog__input",
-                placeholder: `Type ${typeText} to confirm`,
+                placeholder: t("confirm.typePlaceholder", { text: typeText }),
                 autocomplete: "off",
                 oninput: (e) => {
                   confirmBtn.disabled = e.target.value !== typeText;

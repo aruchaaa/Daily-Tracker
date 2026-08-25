@@ -84,13 +84,16 @@ function buildNameCard(currentName, container) {
     type: "button",
     text: t("profile.save"),
     onclick: async () => {
-      const name = nameInput.value.trim();
-      await metaRepo.setCharacterName(name);
-      playSave();
-      showToast(name ? t("profile.namedTo", { name }) : t("profile.nameCleared"), "success");
-      // Re-render so the share card (and everything else) picks up the new
-      // name — the card is drawn from the stats captured at render time.
-      renderProfile(container);
+      try {
+        const name = nameInput.value.trim();
+        await metaRepo.setCharacterName(name);
+        playSave();
+        showToast(name ? t("profile.namedTo", { name }) : t("profile.nameCleared"), "success");
+        renderProfile(container);
+      } catch (err) {
+        playError();
+        showToast(t("profile.cardFailed") + ": " + err.message, "error");
+      }
     },
   });
 

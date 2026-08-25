@@ -1,6 +1,6 @@
 import { exportBackup, importBackup, importBackupMerge, clearAllData } from "../backup/backupManager.js";
 import { THEMES, setTheme, setCustomAccent } from "../core/theme.js";
-import { scheduleTodayReminders, enableReminders, disableReminders } from "../core/notifications.js";
+import { enableReminders, disableReminders } from "../core/notifications.js";
 import * as metaRepo from "../db/metaRepo.js";
 import { playSave, playError, playToggle, playDelete, playUndo } from "../core/sounds.js";
 import { el } from "./components.js";
