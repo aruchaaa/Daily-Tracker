@@ -31,8 +31,8 @@ export async function renderHome(container, { justLeveledUp = false, justChecked
 
   container.append(
     ...(banner ? [banner] : []),
-    buildLevelPanel(progress, { clickable: true, levelUp: justLeveledUp }),
     buildGreeting(charName),
+    buildLevelPanel(progress, { clickable: true, levelUp: justLeveledUp }),
     buildTargetCard(state.totalExpToday, dailyTarget, container),
     el("h2", { class: "section-title", text: t("home.todayTasks") }),
     buildTaskList(state, progress, container, justCheckedId),
@@ -138,7 +138,11 @@ function buildGreeting(name) {
       ? (name ? "home.greetingAfternoon" : "home.greetingAfternoonNoName")
       : (name ? "home.greetingEvening" : "home.greetingEveningNoName");
   const text = name ? t(key, { name }) : t(key);
-  return el("div", { class: "home-greeting", text });
+  const icon = h < 12 ? "\u2600\uFE0F" : h < 18 ? "\u2600\uFE0F" : "\uD83C\uDF19";
+  return el("div", { class: "home-greeting" }, [
+    el("span", { class: "home-greeting__icon", text: icon }),
+    el("span", { class: "home-greeting__text", text }),
+  ]);
 }
 
 function buildTaskList(state, progress, container, justCheckedId) {
