@@ -9,17 +9,10 @@ export async function renderTasks(container) {
   container.innerHTML = "";
   const tasks = await tasksRepo.getAllTasks();
 
-  // Scheduled tasks always sorted by time; unscheduled ones follow in
-  // manual (drag) order — same logic as dailyTracker so Home and Tasks
-  // show the same sequence.
-  tasks.sort((a, b) => {
-    if (a.startTime && b.startTime) return a.startTime.localeCompare(b.startTime);
-    if (a.startTime) return -1;
-    if (b.startTime) return 1;
-    const ka = a.sortOrder !== undefined ? a.sortOrder : Date.parse(a.createdAt) || 0;
-    const kb = b.sortOrder !== undefined ? b.sortOrder : Date.parse(b.createdAt) || 0;
-    return ka - kb;
-  });
+  // Single sort: all tasks by sortOrder. Scheduled tasks have
+  // sortOrder = startTime in minutes; unscheduled tasks get drag-assigned
+  // values that can land between scheduled ones.
+  tasks.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
   const list = el("div", { class: "task-manage-list" });
   if (tasks.length === 0) {
@@ -118,6 +111,7 @@ function buildTaskRow(task, container) {
   const row = el("div", {
     class: `task-manage-row ${task.isActive ? "" : "task-manage-row--inactive"}`,
     "data-task-id": task.id,
+    "data-sort-order": String(task.sortOrder ?? 0),
   });
   const timeRange = formatTimeRange(task);
   const nameCell = el("a", { href: `#/task/${task.id}`, class: "task-manage-row__name task-manage-row__name--link" }, [
@@ -347,15 +341,21 @@ function initDrag(listEl) {
     if (!state) return;
     state.row.classList.remove("task-manage-row--dragging");
     state.row.style.cssText = "";
-    // Only persist the order of unscheduled tasks (those with a drag handle).
-    // Scheduled tasks keep their time-based order and are never reordered.
-    const ids = [...listEl.querySelectorAll(".task-manage-row")]
-      .filter((r) => r.querySelector(".drag-handle"))
-      .map((r) => r.dataset.taskId)
-      .filter(Boolean);
-    if (ids.length) {
+    // Update sortOrder for unscheduled tasks (those with a drag handle)
+    // based on their new DOM position. Scheduled tasks keep their
+    // time-based sortOrder unchanged. Midpoint between neighbours ensures
+    // unscheduled tasks land in the right slot between scheduled ones.
+    const allRows = [...listEl.querySelectorAll(".task-manage-row")];
+    for (let i = 0; i < allRows.length; i++) {
+      const row = allRows[i];
+      if (!row.querySelector(".drag-handle")) continue;
+      const prevSort = i > 0 ? Number(allRows[i - 1].dataset.sortOrder) : -1;
+      const nextSort =
+        i < allRows.length - 1 ? Number(allRows[i + 1].dataset.sortOrder) : 100000;
+      const newSort = Math.floor((prevSort + nextSort) / 2);
       try {
-        await tasksRepo.setTaskOrder(ids);
+        await tasksRepo.updateTask(row.dataset.taskId, { sortOrder: newSort });
+        row.dataset.sortOrder = String(newSort);
       } catch {
         /* order is cosmetic; ignore persistence failure */
       }

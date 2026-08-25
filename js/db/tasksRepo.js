@@ -1,6 +1,13 @@
 import { openDB, promisifyRequest, txDone } from "./db.js";
 import { generateId } from "../utils.js";
 
+/** Convert "HH:MM" to minutes since midnight for time-based sorting. */
+function timeToSortOrder(startTime) {
+  if (!startTime) return undefined;
+  const [h, m] = startTime.split(":").map(Number);
+  return h * 60 + m;
+}
+
 export async function createTask({ name, expValue, startTime, endTime }) {
   const db = await openDB();
   const now = new Date().toISOString();
@@ -11,9 +18,9 @@ export async function createTask({ name, expValue, startTime, endTime }) {
     isActive: true,
     startTime: startTime || "",
     endTime: endTime || "",
-    // Manual reorder key: timestamp assigned at creation; older tasks
-    // (without sortOrder) fall back to their createdAt in the sort below.
-    sortOrder: Date.now(),
+    // Scheduled tasks sort by time (minutes since midnight); unscheduled
+    // ones get a large timestamp so they appear at the end until dragged.
+    sortOrder: startTime ? timeToSortOrder(startTime) : Date.now(),
     createdAt: now,
     updatedAt: now,
   };
@@ -30,6 +37,13 @@ export async function updateTask(id, changes) {
   const existing = await promisifyRequest(store.get(id));
   if (!existing) throw new Error("Task not found");
   const updated = { ...existing, ...changes, updatedAt: new Date().toISOString() };
+  // Re-derive sortOrder when startTime changes so scheduled tasks
+  // stay in time order even after editing.
+  if ("startTime" in changes) {
+    updated.sortOrder = changes.startTime
+      ? timeToSortOrder(changes.startTime)
+      : existing.sortOrder;
+  }
   store.put(updated);
   await txDone(tx);
   return updated;

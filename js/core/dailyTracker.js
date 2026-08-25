@@ -22,14 +22,10 @@ export async function getTodayState(allTasks) {
       task,
       isCompleted: completedTaskIds.has(task.id),
     }))
-    // Scheduled tasks show in time order; unscheduled ones keep their
-    // original (creation) order and sort after all scheduled ones.
-    .sort((a, b) => {
-      if (a.task.startTime && b.task.startTime) return a.task.startTime.localeCompare(b.task.startTime);
-      if (a.task.startTime) return -1;
-      if (b.task.startTime) return 1;
-      return 0;
-    });
+    // All tasks sorted by sortOrder — scheduled tasks have time-based
+    // values, unscheduled tasks have drag-assigned values that can land
+    // between scheduled ones.
+    .sort((a, b) => (a.task.sortOrder ?? 0) - (b.task.sortOrder ?? 0));
 
   const totalExpToday = completions.reduce((sum, c) => sum + c.expAwarded, 0);
 

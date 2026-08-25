@@ -103,7 +103,8 @@ daily-tracker/
     │   ├── screenHome.js       checklist, daily target, sleep, backup banner,
     │   │                       level-up flash on badge
     │   ├── screenTasks.js      add/edit/delete (Undo toast; delete is type-to-confirm),
-    │   │                       chips
+    │   │                       chips, drag-to-reorder unscheduled tasks
+    │   │                       (flexible positioning between scheduled tasks)
     │   ├── screenTaskDetail.js #/task/<id>: streaks, heatmap, notes, reminder
     │   ├── screenProfile.js    rename, trends, stats, achievements, share card canvas
     │   ├── screenHistory.js    month calendar + day detail, PDF via print
@@ -158,6 +159,12 @@ Level is always derived from lifetime EXP, never stored.
   `completionsRepo.toggleCompletion()` — one multi-store transaction,
   serialized against rapid double-clicks, snapshots EXP at check time so
   uncheck subtracts exactly what was awarded.
+- **Task ordering:** all tasks share a single `sortOrder` field.
+  Scheduled tasks get `sortOrder = startTime in minutes` (set on
+  create/update); unscheduled tasks get drag-assigned midpoint values
+  that can land between scheduled ones. Both Home and Tasks sort by
+  `sortOrder`, so the order is always consistent. Drag handles only
+  appear on unscheduled tasks.
 - **Service worker:** cache name is the manual versioning mechanism; bump
   it whenever the precache shell or any cached JS/CSS changes. Precache
   list is **complete** — every module under `js/` is in `APP_SHELL`; when
@@ -396,6 +403,22 @@ A full read-through audit of all modules; fixes applied:
   bar labels via `updateNavLabels()` exported from `app.js`.
 - **Nav bar labels** updated dynamically from i18n on boot and on language
   switch. The `<html lang>` attribute is also set.
+
+### Flexible task ordering + i18n polish (SW v33 continued)
+- **Single sortOrder system**: all tasks (scheduled and unscheduled) share
+  one `sortOrder` field. Scheduled tasks get `sortOrder = startTime in
+  minutes` (set on create/update via `timeToSortOrder()`); unscheduled
+  tasks get drag-assigned midpoint values that can land between scheduled
+  tasks. Both Home (`dailyTracker.js`) and Tasks (`screenTasks.js`) sort
+  by `sortOrder`, so the order is always consistent.
+- **Flexible drag positioning**: unscheduled tasks can now be placed before,
+  after, or between scheduled tasks. On drop, `initDrag` calculates a
+  midpoint `sortOrder` between the neighbouring rows' `sortOrder` values,
+  then persists only unscheduled tasks (those with a drag handle).
+- **Indonesian translations rewritten**: replaced stiff, word-for-word
+  translations with casual, natural Bahasa Indonesia (e.g., "Bertabrakan
+  dengan" → "Bentrok sama", "Gagal mengurungkan" → "Gagal batalin").
+  Fixed typo "riwayas" → "riwayat".
 
 ### Testing notes
 - `verify5.mjs` assertions are deliberately time-zone- and clock-aware:
