@@ -1,6 +1,8 @@
 import * as tasksRepo from "../db/tasksRepo.js";
+import * as notesRepo from "../db/notesRepo.js";
 import { getTaskStats } from "../core/taskStats.js";
 import { scheduleTodayReminders } from "../core/notifications.js";
+import { getTodayDateString } from "../utils.js";
 import { playSave, playError } from "../core/sounds.js";
 import { t } from "../core/i18n.js";
 import { el, buildHeatmap, buildEmptyState, statCard, formatTimeRange } from "./components.js";
@@ -20,7 +22,10 @@ export async function renderTaskDetail(container, taskId) {
     return;
   }
 
-  const stats = await getTaskStats(task.id);
+  const [stats, todayNote] = await Promise.all([
+    getTaskStats(task.id),
+    notesRepo.getNote(getTodayDateString(), task.id),
+  ]);
   const timeRange = formatTimeRange(task);
 
   const grid = el("div", { class: "report-grid" }, [
@@ -38,7 +43,7 @@ export async function renderTaskDetail(container, taskId) {
     // an optional element needs the spread-empty-array guard instead of a
     // bare ternary.
     ...(timeRange ? [el("p", { class: "task-detail-time", text: timeRange })] : []),
-    buildNotesCard(task, container),
+    buildNotesCard(task, todayNote),
     buildReminderCard(task, container),
     grid,
     el("h3", { class: "profile-subheading", text: t("detail.lastWeeks", { n: stats.heatmapWeeks }) }),
@@ -49,13 +54,13 @@ export async function renderTaskDetail(container, taskId) {
   );
 }
 
-function buildNotesCard(task, container) {
+function buildNotesCard(task, todayNote) {
   const textarea = el("textarea", {
     class: "input notes-textarea",
     placeholder: t("detail.notesPlaceholder"),
     maxlength: "1000",
   });
-  textarea.value = task.notes || "";
+  textarea.value = todayNote || "";
 
   const saveBtn = el("button", {
     class: "btn btn--primary",
@@ -64,7 +69,7 @@ function buildNotesCard(task, container) {
     onclick: async () => {
       const notes = textarea.value.trim();
       try {
-        await tasksRepo.updateTask(task.id, { notes });
+        await notesRepo.setNote(getTodayDateString(), task.id, notes);
         playSave();
         showToast(notes ? t("detail.notesSaved") : t("detail.notesCleared"), "success");
       } catch (e) {
@@ -76,6 +81,7 @@ function buildNotesCard(task, container) {
 
   return el("div", { class: "moment-card" }, [
     el("div", { class: "profile-name-card__label", text: t("detail.notes") }),
+    el("p", { class: "settings-desc", text: t("detail.notesToday") }),
     textarea,
     saveBtn,
   ]);

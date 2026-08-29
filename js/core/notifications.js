@@ -12,39 +12,45 @@ import * as metaRepo from "../db/metaRepo.js";
 const timers = new Set();
 
 export async function scheduleTodayReminders() {
-  timers.forEach((t) => clearTimeout(t));
-  timers.clear();
+  try {
+    timers.forEach((t) => clearTimeout(t));
+    timers.clear();
 
-  if (!("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
-  if (!(await metaRepo.getRemindersEnabled())) return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    if (!(await metaRepo.getRemindersEnabled())) return;
 
-  const tasks = await tasksRepo.getActiveTasks();
-  const now = new Date();
+    const tasks = await tasksRepo.getActiveTasks();
+    const now = new Date();
 
-  for (const task of tasks) {
-    const time = task.reminderTime || task.startTime;
-    if (!time) continue;
-    const [h, m] = time.split(":").map(Number);
-    if (h === undefined || m === undefined) continue;
+    for (const task of tasks) {
+      const time = task.reminderTime || task.startTime;
+      if (!time) continue;
+      const [h, m] = time.split(":").map(Number);
+      if (h === undefined || m === undefined) continue;
 
-    const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
-    const delay = at - now;
-    if (delay <= 0) continue; // already passed today
+      const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+      const delay = at - now;
+      if (delay <= 0) continue; // already passed today
 
-    const name = task.name;
-    timers.add(
-      setTimeout(() => {
-        try {
-          new Notification("Daily Tracker", {
-            body: `Time for: ${name}`,
-            icon: "icons/icon-192.png",
-          });
-        } catch (err) {
-          console.warn("Notification failed:", err);
-        }
-      }, delay)
-    );
+      const name = task.name;
+      timers.add(
+        setTimeout(() => {
+          try {
+            new Notification("Daily Tracker", {
+              body: `Time for: ${name}`,
+              icon: "icons/icon-192.png",
+            });
+          } catch (err) {
+            console.warn("Notification failed:", err);
+          }
+        }, delay)
+      );
+    }
+  } catch (err) {
+    // Best-effort feature: a failure here (e.g. a transient DB error at
+    // boot) must never surface as an unhandled rejection.
+    console.warn("scheduleTodayReminders failed:", err);
   }
 }
 

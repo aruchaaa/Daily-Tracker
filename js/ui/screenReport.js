@@ -27,7 +27,12 @@ export async function renderReport(container) {
     text: t("report.generate"),
     onclick: async () => {
       playOpen();
-      await loadReport(monthInput.value, resultArea);
+      try {
+        await loadReport(monthInput.value, resultArea);
+      } catch (e) {
+        playError();
+        showToast(t("report.loadFailed") + ": " + e.message, "error");
+      }
     },
   });
   const csvBtn = el("button", {
@@ -140,7 +145,7 @@ async function loadReport(yearMonth, resultArea) {
 
   const footer = el("div", {
     class: "report-footer",
-    text: `Generated ${new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}`,
+    text: t("report.generated", { date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) }),
   });
 
   resultArea.append(header, completionMeter, grid, printBtn, buildTaskTallySection(report.taskTally), buildMomentSection(yearMonth, momentText), footer);
@@ -193,7 +198,7 @@ function buildMomentSection(yearMonth, currentText) {
         showToast(t("report.momentSaved"), "success");
       } catch (err) {
         playError();
-        showToast(t("report.csvFailed") + ": " + err.message, "error");
+        showToast(t("report.saveMomentFailed") + ": " + err.message, "error");
       }
     },
   });

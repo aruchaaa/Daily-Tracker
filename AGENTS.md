@@ -36,7 +36,7 @@ modules against `fake-indexeddb` in Node):
 ```powershell
 cd C:\Users\Admin\AppData\Local\Temp\opencode\idbtest
 node verify5.mjs          # full regression suite — expect "ALL VERIFIED"
-node linkall.mjs          # module-import check — expect "27 ok" + app.js
+node linkall.mjs          # module-import check — expect "28 ok" + app.js
                           # (app.js needs a DOM, so its failure is expected)
 ```
 
@@ -48,7 +48,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v33`).
+  reference in `README.md` (currently `v35`).
 
 ## Architecture
 
@@ -66,8 +66,9 @@ daily-tracker/
     │                     SW registration + one-shot reload, install wiring
     ├── utils.js          local-date YYYY-MM-DD, display dates, generateId, month names
     ├── db/               THE ONLY place raw IndexedDB calls happen
-    │   ├── db.js         lazy single connection (DailyTrackerDB v2), promisify wrappers,
-    │   │                 onversionchange close + cache reset
+    │   ├── db.js         lazy single connection (DailyTrackerDB v3), promisify wrappers,
+    │   │                 onversionchange close + cache reset; v3 migration moves legacy
+    │   │                 task.notes into today's taskNotes record
     │   ├── tasksRepo.js  task CRUD, sortOrder, setTaskOrder, restoreTask (undo)
     │   │                 moveTask removed (dead code); setTaskOrder kept for harness
     │   ├── completionsRepo.js  records keyed "<date>_<taskId>"; toggleCompletion is the
@@ -75,7 +76,9 @@ daily-tracker/
     │   ├── metaRepo.js   flat key-value store (EXP total, name, theme, toggles,
     │   │                 achievements, moments, lastBackupAt, dailyTargetExp,
     │   │                 onboardingDone)
-    │   └── sleepRepo.js  per-day sleep hours (upsert + range)
+    │   ├── sleepRepo.js  per-day sleep hours (upsert + range)
+    │   └── notesRepo.js  per-day task notes keyed "<date>_<taskId>" (getNote,
+    │                     getNotesForDate, setNote — blank deletes that day only)
     ├── core/             business logic, NO DOM (15 modules)
     │   ├── expEngine.js      progressive curve: level N→N+1 = 100 + (N-1)*20
     │   ├── dailyTracker.js   today's state (join tasks+completions, sort, totals)
@@ -102,7 +105,7 @@ daily-tracker/
     │   │                 formatTimeRange
     │   ├── screenHome.js       checklist, daily target, sleep, backup banner,
     │   │                       level-up flash on badge
-    │   ├── screenTasks.js      add/edit/delete (Undo toast; delete is type-to-confirm),
+    │   ├── screenTasks.js      add/edit/delete (Undo toast; delete confirms via dialog),
     │   │                       chips, drag-to-reorder unscheduled tasks
     │   │                       (flexible positioning between scheduled tasks)
     │   ├── screenTaskDetail.js #/task/<id>: streaks, heatmap, notes, reminder
@@ -118,7 +121,7 @@ daily-tracker/
         └── csvExport.js      pure buildMonthCSV + exportMonthCSV (UTF-8 BOM)
 ```
 
-## Data model (IndexedDB `DailyTrackerDB`, v2)
+## Data model (IndexedDB `DailyTrackerDB`, v3)
 
 - **tasks** — keyPath `id`; name, expValue, isActive, optional
   startTime/endTime, sortOrder, createdAt.
@@ -131,6 +134,12 @@ daily-tracker/
   soundEnabled, achievements (array of `{id, at}`, legacy string arrays
   normalized on read), `momentNote:YYYY-MM`.
 - **sleepLogs** — keyPath `date`; hours.
+- **taskNotes** — keyPath `id` = `"<date>_<taskId>"`; one note per task per
+  day, so a note written today never mutates what History shows for a past
+  day (the v2 "stuck note" problem). Records `{date, taskId, note,
+  updatedAt}`; indexes on `date` and `taskId`. v3 migration moves a legacy
+  `tasks.notes` string into today's note; blank `setNote` deletes that
+  day's record only.
 
 Level is always derived from lifetime EXP, never stored.
 
@@ -323,8 +332,10 @@ recorded separately, so this describes the combined, verifiable state.
 - **Type-to-confirm destructive dialogs**: `showConfirmDialog` gained a
   `typeText` option ("Type DELETE / REPLACE to confirm") that keeps the
   confirm button disabled until the word matches exactly; Escape cancels,
-  Enter confirms when enabled. Used by Manage Tasks delete, backup
-  import-replace, and Settings clear-all-data.
+  Enter confirms when enabled. Used by backup import-replace and Settings
+  clear-all-data. (Manage Tasks delete originally used it too, but the
+  type-confirm was later dropped in favor of the Undo toast — its only
+  in-panel destructive dialog now confirms via the plain dialog.)
 - **Level-up flash**: `buildLevelPanel` gained `{ clickable }` (Home's
   badge becomes a link to #/profile) and `{ levelUp }` (one-shot flash
   class). Home compares `getLevel(lifetimeExp)` before/after the toggle
@@ -452,6 +463,51 @@ A full read-through audit of all modules; fixes applied:
   - `screenSettings.js`: removed unused `scheduleTodayReminders` import.
   - `components.css`: removed dead `.reorder-btn` CSS, merged duplicate
     `.task-manage-row` rules.
+
+### Per-day notes (SW v34, DB v3, backup v3)
+- **Notes became day-scoped**: the old single `tasks.notes` string "stuck"
+  permanently — History read it live off the task, so editing it rewrote
+  every past day. A new `taskNotes` store keyed `"<date>_<taskId>"` (like
+  completions) makes "one note per task per day" structural. Task Detail
+  edits *today's* note only; History shows each day's own note (and keeps
+  it even if the task is later deleted); Manage Tasks rows preview today's
+  note. `notesRepo.js` (getNote / getNotesForDate / setNote / getAllNotes);
+  blank setNote deletes that day only. i18n `detail.notesToday` caption.
+- **DB v2 → v3 migration** (in `db.js` `onupgradeneeded`): any legacy
+  `tasks.notes` is copied into today's taskNotes record inside the
+  versionchange transaction, then emptied off the task.
+- **Backup v3**: `taskNotes` exported/imported; import-sanitized like the
+  other stores (`skipped` counting); v1/v2 backup files get their legacy
+  `tasks.notes` reconstructed as today's note on import. Tasks are now
+  rebuilt explicitly in `normalizeBackup` (known fields only).
+
+### Robustness audit round 2 (SW v35)
+A read-through audit of every module; fixes applied (no DB or schema change):
+- **Error-handling gaps closed**: Report's Generate button, History's
+  month-change and day-cell clicks, and every Settings action (language
+  switch, reminders on/off, sound on/off, accent apply/reset, install)
+  now try/catch their async work with a translated error toast + error
+  buzz, matching the documented error convention. New i18n keys
+  `report.loadFailed`/`saveMomentFailed`/`generated`, `history.loadFailed`,
+  and the `settings.*Failed` set (EN + ID).
+- **`scheduleTodayReminders()` is fully best-effort now**: the whole body
+  is wrapped so a transient DB error at boot can't surface as an
+  unhandled rejection — it logs `console.warn` and moves on.
+- **Wrong error message fixed**: saving a memorable moment in Report
+  previously toasted `report.csvFailed` ("CSV export failed"); now uses
+  the dedicated `report.saveMomentFailed`. The Report PDF footer was
+  hardcoded English "Generated …" — now `t("report.generated")`.
+- **Uncheck EXP math hardened** (`completionsRepo.runToggle`): a legacy
+  completion record lacking a usable numeric `expAwarded` is coerced to 0
+  instead of making the lifetime total `NaN`.
+- **Drag cleanup** (Manage Tasks): `pointercancel` /
+  `lostpointercapture` tear down an interrupted drag (scroll gesture,
+  notification) instead of leaving the row floating with its styles.
+- **Dead i18n keys removed**: `profile.unnamed`, `settings.invalidRecords`,
+  `level.max` (defined but never referenced by any screen).
+- **Doc drift fixed**: AGENTS.md's architecture line and SW v29 entry
+  still claimed Manage Tasks delete used the type-to-confirm dialog, but
+  the code had dropped it for the Undo toast; both now match reality.
 
 ### Testing notes
 - `verify5.mjs` assertions are deliberately time-zone- and clock-aware:

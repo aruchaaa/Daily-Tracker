@@ -1,10 +1,11 @@
 import { getDayRecord } from "../core/history.js";
 import * as completionsRepo from "../db/completionsRepo.js";
-import * as tasksRepo from "../db/tasksRepo.js";
+import * as notesRepo from "../db/notesRepo.js";
 import { getTodayDateString, formatDateDisplay } from "../utils.js";
-import { playOpen, playSave } from "../core/sounds.js";
+import { playOpen, playSave, playError } from "../core/sounds.js";
 import { t } from "../core/i18n.js";
 import { el, buildEmptyState } from "./components.js";
+import { showToast } from "./toast.js";
 
 const WEEKDAY_HEADERS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
@@ -21,7 +22,14 @@ export async function renderHistory(container) {
     class: "input",
     value: currentYM,
     max: currentYM,
-    onchange: () => loadMonth(monthInput.value, calendarHost, resultArea),
+    onchange: async () => {
+      try {
+        await loadMonth(monthInput.value, calendarHost, resultArea);
+      } catch (err) {
+        playError();
+        showToast(t("history.loadFailed") + ": " + err.message, "error");
+      }
+    },
   });
 
   container.append(
@@ -75,7 +83,12 @@ async function loadMonth(yearMonth, calendarHost, resultArea) {
         selectedDate = dateStr;
         grid.querySelectorAll(".cal-cell--selected").forEach((c) => c.classList.remove("cal-cell--selected"));
         cell.classList.add("cal-cell--selected");
-        await loadDay(dateStr, resultArea);
+        try {
+          await loadDay(dateStr, resultArea);
+        } catch (err) {
+          playError();
+          showToast(t("history.loadFailed") + ": " + err.message, "error");
+        }
       },
     });
     grid.appendChild(cell);
@@ -102,15 +115,17 @@ async function loadDay(date, resultArea) {
     return;
   }
 
-  // Join live task records so notes written on the task detail screen are
-  // visible here too (a deleted task simply has no note to show).
-  const tasks = await tasksRepo.getAllTasks();
-  const taskById = new Map(tasks.map((t) => [t.id, t]));
+  // Notes are stored per day (taskNotes, keyed <date>_<taskId>), so each
+  // past day shows exactly the note written on that day — a task renamed
+  // or deleted later can't change what history shows, and today's note
+  // edits never leak backwards.
+  const noteByTaskId = new Map(
+    (await notesRepo.getNotesForDate(date)).map((n) => [n.taskId, n.note])
+  );
 
   const list = el("div", { class: "history-list" });
   record.completions.forEach((c) => {
-    const task = taskById.get(c.taskId);
-    const note = (task && task.notes) || "";
+    const note = noteByTaskId.get(c.taskId) || "";
     list.appendChild(
       el("div", { class: "history-item" }, [
         el("div", { class: "history-item__main" }, [

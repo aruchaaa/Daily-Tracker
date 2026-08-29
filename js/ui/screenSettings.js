@@ -196,11 +196,16 @@ function buildLanguageSection(container) {
         type: "button",
         onclick: async () => {
           if (opt.value === current) return;
-          setI18nLang(opt.value);
-          await metaRepo.setLang(opt.value);
-          window.dispatchEvent(new CustomEvent("languagechanged"));
-          playToggle();
-          renderSettings(container);
+          try {
+            setI18nLang(opt.value);
+            await metaRepo.setLang(opt.value);
+            window.dispatchEvent(new CustomEvent("languagechanged"));
+            playToggle();
+            renderSettings(container);
+          } catch (err) {
+            playError();
+            showToast(t("settings.languageFailed") + ": " + err.message, "error");
+          }
         },
       },
       [
@@ -226,22 +231,27 @@ function buildRemindersSection(enabled, container) {
     type: "button",
     text: enabled ? t("settings.remindersOn") : t("settings.remindersOff"),
     onclick: async () => {
-      if (enabled) {
-        await disableReminders();
-        playToggle();
-        showToast(t("settings.remindersOffMsg"));
+      try {
+        if (enabled) {
+          await disableReminders();
+          playToggle();
+          showToast(t("settings.remindersOffMsg"));
+          renderSettings(container);
+          return;
+        }
+        const ok = await enableReminders();
+        if (ok) {
+          playToggle();
+          showToast(t("settings.remindersEnabled"), "success");
+        } else {
+          playError();
+          showToast(t("settings.permissionDenied"), "error");
+        }
         renderSettings(container);
-        return;
-      }
-      const ok = await enableReminders();
-      if (ok) {
-        playToggle();
-        showToast(t("settings.remindersEnabled"), "success");
-      } else {
+      } catch (err) {
         playError();
-        showToast(t("settings.permissionDenied"), "error");
+        showToast(t("settings.remindersFailed") + ": " + err.message, "error");
       }
-      renderSettings(container);
     },
   });
 
@@ -261,10 +271,15 @@ function buildSoundsSection(enabled, container) {
     type: "button",
     text: enabled ? t("settings.soundOn") : t("settings.soundOff"),
     onclick: async () => {
-      await metaRepo.setSoundEnabled(!enabled);
-      playToggle();
-      showToast(!enabled ? t("settings.soundEnabled") : t("settings.soundDisabled"));
-      renderSettings(container);
+      try {
+        await metaRepo.setSoundEnabled(!enabled);
+        playToggle();
+        showToast(!enabled ? t("settings.soundEnabled") : t("settings.soundDisabled"));
+        renderSettings(container);
+      } catch (err) {
+        playError();
+        showToast(t("settings.soundFailed") + ": " + err.message, "error");
+      }
     },
   });
 
@@ -289,9 +304,14 @@ function buildAccentSection(currentAccent, container) {
     type: "button",
     text: t("settings.apply"),
     onclick: async () => {
-      await setCustomAccent(colorInput.value);
-      playSave();
-      showToast(t("settings.accentApplied"), "success");
+      try {
+        await setCustomAccent(colorInput.value);
+        playSave();
+        showToast(t("settings.accentApplied"), "success");
+      } catch (err) {
+        playError();
+        showToast(t("settings.accentFailed") + ": " + err.message, "error");
+      }
     },
   });
 
@@ -300,9 +320,14 @@ function buildAccentSection(currentAccent, container) {
     type: "button",
     text: t("settings.resetThemeDefault"),
     onclick: async () => {
-      await setCustomAccent("");
-      playUndo();
-      renderSettings(container);
+      try {
+        await setCustomAccent("");
+        playUndo();
+        renderSettings(container);
+      } catch (err) {
+        playError();
+        showToast(t("settings.accentFailed") + ": " + err.message, "error");
+      }
     },
   });
 
@@ -337,14 +362,19 @@ function buildInstallSection(container) {
         showToast(t("settings.installHint"), "info", 4200);
         return;
       }
-      const ok = await installApp();
-      if (ok) {
-        playSave();
-        showToast(t("settings.installing"), "success");
-      } else {
-        showToast(t("settings.installCancelled"), "info");
+      try {
+        const ok = await installApp();
+        if (ok) {
+          playSave();
+          showToast(t("settings.installing"), "success");
+        } else {
+          showToast(t("settings.installCancelled"), "info");
+        }
+        renderSettings(container);
+      } catch (err) {
+        playError();
+        showToast(t("settings.installFailed") + ": " + err.message, "error");
       }
-      renderSettings(container);
     },
   });
 

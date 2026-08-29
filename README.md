@@ -122,9 +122,10 @@ still import (they just restore with the extras empty).
   `ui/screenTaskDetail.js`). Current streak counts backward from today
   if today's already done, or from yesterday if not — so it doesn't
   read "0" the moment you open the app before doing today's task.
-  The same screen also hosts per-task **notes** (shown as a preview line
-  in History) and a **per-task reminder time** that overrides the task's
-  schedule for notifications.
+  The same screen also hosts per-day **notes** — each day gets its own
+  note, shown in History for that day and previewed on the Manage Tasks
+  row for today — plus a **per-task reminder time** that overrides the
+  task's schedule for notifications.
 - **Achievements**: twenty badges in two tiers (`core/achievements.js`) —
   ten everyday goals (first task, 100 tasks, 7/30-day streaks, early
   bird, night owl, levels 5/10, 1,000 EXP, daily target) and ten
@@ -210,7 +211,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v33`. The app also auto-reloads itself once when a newer
+`daily-tracker-v35`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,

@@ -97,12 +97,15 @@ async function runToggle(date, taskId, compId) {
       if (existing) {
         // Uncheck.
         compStore.delete(compId);
+        // Coerce in case of a legacy record without a usable numeric
+        // snapshot — subtracting NaN would poison the lifetime total.
+        const awarded = Number(existing.expAwarded) || 0;
         const getMetaReq = metaStore.get("lifetimeExp");
         getMetaReq.onsuccess = () => {
           const current = getMetaReq.result ? getMetaReq.result.value : 0;
-          const updated = Math.max(0, current - existing.expAwarded);
+          const updated = Math.max(0, current - awarded);
           metaStore.put({ key: "lifetimeExp", value: updated });
-          result = { action: "removed", expDelta: -existing.expAwarded, lifetimeExp: updated };
+          result = { action: "removed", expDelta: -awarded, lifetimeExp: updated };
         };
       } else {
         // Check — needs the task's current EXP value to snapshot.

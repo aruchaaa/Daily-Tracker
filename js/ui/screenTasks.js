@@ -1,5 +1,7 @@
 import * as tasksRepo from "../db/tasksRepo.js";
+import * as notesRepo from "../db/notesRepo.js";
 import { findTimeConflict } from "../core/schedule.js";
+import { getTodayDateString } from "../utils.js";
 import { playSave, playError, playToggle, playDelete, playUndo, playOpen } from "../core/sounds.js";
 import { el, buildEmptyState, formatTimeRange } from "./components.js";
 import { showConfirmDialog, showToast } from "./toast.js";
@@ -14,13 +16,19 @@ export async function renderTasks(container) {
   // values that can land between scheduled ones.
   tasks.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
+  // Row previews show each task's TODAY note (per-day notes are otherwise
+  // only visible on the task detail screen and in History).
+  const todayNoteByTaskId = new Map(
+    (await notesRepo.getNotesForDate(getTodayDateString())).map((n) => [n.taskId, n.note])
+  );
+
   const list = el("div", { class: "task-manage-list" });
   if (tasks.length === 0) {
     list.appendChild(
       buildEmptyState("plus", t("tasks.emptyTitle"), t("tasks.emptyDesc"))
     );
   } else {
-    tasks.forEach((task) => list.appendChild(buildTaskRow(task, container)));
+    tasks.forEach((task) => list.appendChild(buildTaskRow(task, container, todayNoteByTaskId)));
   }
   initDrag(list, container);
 
@@ -133,7 +141,7 @@ function buildAddForm(container) {
   return form;
 }
 
-function buildTaskRow(task, container) {
+function buildTaskRow(task, container, todayNoteByTaskId) {
   const errorMsg = el("p", { class: "form-error" });
   const row = el("div", {
     class: `task-manage-row ${task.isActive ? "" : "task-manage-row--inactive"}`,
@@ -141,13 +149,14 @@ function buildTaskRow(task, container) {
     "data-sort-order": String(task.sortOrder ?? 0),
   });
   const timeRange = formatTimeRange(task);
+  const todayNote = todayNoteByTaskId.get(task.id) || "";
   const nameCell = el("a", { href: `#/task/${task.id}`, class: "task-manage-row__name task-manage-row__name--link" }, [
     task.name,
     timeRange ? el("span", { class: "task-row__time", text: timeRange }) : null,
-    task.notes
+    todayNote
       ? el("span", {
           class: "task-manage-row__notes",
-          text: task.notes.length > 80 ? `${task.notes.slice(0, 77)}\u2026` : task.notes,
+          text: todayNote.length > 80 ? `${todayNote.slice(0, 77)}\u2026` : todayNote,
         })
       : null,
   ]);
@@ -416,4 +425,17 @@ function initDrag(listEl) {
     }
     state = null;
   });
+
+  // An interrupted drag (scroll gesture, notification, OS interrupt) fires
+  // pointercancel instead of pointerup — without this the row would stay
+  // floating with its dragging styles. lostpointercapture also fires here
+  // (and after a normal pointerup, by which point state is already null).
+  const abortDrag = () => {
+    if (!state) return;
+    state.row.classList.remove("task-manage-row--dragging");
+    state.row.style.cssText = "";
+    state = null;
+  };
+  listEl.addEventListener("pointercancel", abortDrag);
+  listEl.addEventListener("lostpointercapture", abortDrag);
 }
