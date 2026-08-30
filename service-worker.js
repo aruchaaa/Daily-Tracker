@@ -6,7 +6,7 @@
 // pure cache-first strategy, at the cost of a network round-trip on every
 // online load (irrelevant here since there's no real data to wait on).
 
-const CACHE_NAME = "daily-tracker-v35";
+const CACHE_NAME = "daily-tracker-v36";
 
 const APP_SHELL = [
   "./",

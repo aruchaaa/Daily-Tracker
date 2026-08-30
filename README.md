@@ -211,7 +211,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v35`. The app also auto-reloads itself once when a newer
+`daily-tracker-v36`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,

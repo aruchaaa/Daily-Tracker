@@ -134,9 +134,12 @@ const translations = {
 
     "history.title": "History",
     "history.total": "Total: {exp} EXP",
-    "history.noTasks": "No tasks completed this day",
-    "history.noTasksDesc": "Toggle tasks on Home to see them here.",
+    "history.noTasks": "No tasks on this day",
+    "history.noTasksDesc": "Add tasks in the Tasks tab to see them here.",
     "history.note": "Note: {text}",
+    "history.doneOf": "{done} / {total} tasks done",
+    "history.notDone": "Not done",
+    "history.deletedTask": "Deleted task",
     "history.exportPdf": "Export as PDF",
     "history.loadFailed": "Loading history failed",
 
@@ -380,9 +383,12 @@ const translations = {
 
     "history.title": "Riwayat",
     "history.total": "Total: {exp} EXP",
-    "history.noTasks": "Belum ada tugas tuntas hari ini",
-    "history.noTasksDesc": "Centang tugas di Beranda buat lihat di sini.",
+    "history.noTasks": "Nggak ada tugas hari ini",
+    "history.noTasksDesc": "Tambah tugas di tab Tugas biar keliatan di sini.",
     "history.note": "Catatan: {text}",
+    "history.doneOf": "{done} / {total} tugas selesai",
+    "history.notDone": "Belum dikerjain",
+    "history.deletedTask": "Tugas dihapus",
     "history.exportPdf": "Export PDF",
     "history.loadFailed": "Gagal memuat riwayat",
 

@@ -664,6 +664,34 @@
   flex-shrink: 0;
 }
 
+.history-summary {
+  font-family: var(--font-stat);
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  margin: -8px 0 12px;
+}
+
+.history-item--pending .history-item__main > span:first-child {
+  color: var(--ink-dim);
+}
+
+.history-item__state {
+  align-self: flex-start;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-top: 2px;
+}
+
+.history-item__exp--zero {
+  color: var(--danger);
+}
+
 /* Same breathing room as the Report screen's export button (which is
    spaced by the card that follows it); here the list is the last sibling. */
 .history-result .btn {

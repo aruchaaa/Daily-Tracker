@@ -48,7 +48,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v35`).
+  reference in `README.md` (currently `v36`).
 
 ## Architecture
 
@@ -82,7 +82,8 @@ daily-tracker/
     ├── core/             business logic, NO DOM (15 modules)
     │   ├── expEngine.js      progressive curve: level N→N+1 = 100 + (N-1)*20
     │   ├── dailyTracker.js   today's state (join tasks+completions, sort, totals)
-    │   ├── history.js        read-only day record (self-contained snapshots)
+    │   ├── history.js        day record = every task that existed that day
+    │   │                     (done + skipped with 0-EXP rows + snapshot rows)
     │   ├── streak.js         longest + current streak (UTC-midnight diffing)
     │   ├── monthlyReport.js  % (per-task existence-weighted), grade, tally
     │   ├── profileStats.js   profile aggregation (reuses generateReport)
@@ -509,6 +510,38 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   still claimed Manage Tasks delete used the type-to-confirm dialog, but
   the code had dropped it for the Undo toast; both now match reality.
 
+### History shows every task of the day (SW v36)
+- **Day detail now lists ALL tasks that existed that day**, not just the
+  completed ones (user request: so the day's notes explain why something
+  wasn't checked off). `getDayRecord(date)` in `core/history.js` grew from a
+  completions-only record to `{ date, rows, totalExp }` where each row =
+  `{ taskId, taskName, expValue, isCompleted, completedAt, note, deleted? }`.
+  Row sources, in order: currently-existing tasks with `createdAt` (local
+  calendar date) <= the day, in Home's sortOrder → completion snapshots for
+  tasks deleted after completing → note-only rows for deleted tasks that
+  still carry a note that day (marked `deleted: true`, name rendered as
+  `history.deletedTask`). The app intentionally does not track deactivation
+  dates, so a deactivated task keeps appearing as pending (same known
+  limitation as `monthlyReport`).
+- **`screenHistory.loadDay` renders the new rows**: done rows keep the
+  green `+N EXP` tag; pending rows get a dimmed name (`.history-item--pending`),
+  a small "Not done" pill (`.history-item__state`), and the tag renders
+  `0 EXP` in `--danger` (`.history-item__exp--zero`). A summary line
+  `.history-summary` shows `X / Y tasks done` (`history.doneOf`). Notes
+  join moves from screenHistory into `getDayRecord` (it already read
+  `notesRepo` for the same date), so the per-day guarantee is unchanged.
+- **i18n**: `history.noTasks`/`noTasksDesc` reworded (empty state now means
+  "no task existed that day", not "nothing completed"); new keys
+  `history.doneOf`, `history.notDone`, `history.deletedTask` (EN + ID).
+- **CSS**: `.history-summary`, `.history-item--pending`,
+  `.history-item__state`, `.history-item__exp--zero` added to
+  `components.css`; colors all via existing variables (`--ink-dim`,
+  `--ink-faint`, `--danger`, `--panel-border`).
+- No DB/schema/backup change (DB still v3, backup v3). New harness
+  assertions cover excluded-coverage: tasks created after the day are not
+  listed, tasks created before are (done + pending), deleted-completed
+  snapshot rows survive, and note-only deleted rows appear with their note.
+
 ### Testing notes
 - `verify5.mjs` assertions are deliberately time-zone- and clock-aware:
   avoid asserting exact badge sets when early-bird/night-owl depend on the
@@ -516,6 +549,13 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
+- Current assertion count is **69** (hard-tier seeded 503-day range +
+  backfilled 40-day tail, install-prompt section, and the 13-assertion
+  day-record block added at SW v36). Don't assert exact intra-group row
+  order in the day-record tests: sortOrder uses `Date.now()` so rapid
+  `createTask` calls can tie, and `getAllTasks` tie-breaks by uuid key
+  order — assert membership/sets and rely on the deterministic groups
+  (existing rows first, deleted snapshot/note rows appended after).
 - Harness provenance: both scripts hardcode an absolute `file:///` base.
   They used to point at a stale copy under
   `Downloads\1\daily-tracker` and were silently testing old code; they

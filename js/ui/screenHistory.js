@@ -1,6 +1,5 @@
 import { getDayRecord } from "../core/history.js";
 import * as completionsRepo from "../db/completionsRepo.js";
-import * as notesRepo from "../db/notesRepo.js";
 import { getTodayDateString, formatDateDisplay } from "../utils.js";
 import { playOpen, playSave, playError } from "../core/sounds.js";
 import { t } from "../core/i18n.js";
@@ -101,43 +100,47 @@ async function loadMonth(yearMonth, calendarHost, resultArea) {
 
 async function loadDay(date, resultArea) {
   resultArea.innerHTML = "";
-  const record = await getDayRecord(date);
+  const { rows, totalExp } = await getDayRecord(date);
 
   resultArea.append(
     el("div", { class: "history-date-title", text: formatDateDisplay(date) }),
-    el("div", { class: "history-total", text: t("history.total", { exp: record.totalExp }) })
+    el("div", { class: "history-total", text: t("history.total", { exp: totalExp }) })
   );
 
-  if (record.completions.length === 0) {
+  if (rows.length === 0) {
     resultArea.appendChild(
       buildEmptyState("clock", t("history.noTasks"), t("history.noTasksDesc"))
     );
     return;
   }
 
-  // Notes are stored per day (taskNotes, keyed <date>_<taskId>), so each
-  // past day shows exactly the note written on that day — a task renamed
-  // or deleted later can't change what history shows, and today's note
-  // edits never leak backwards.
-  const noteByTaskId = new Map(
-    (await notesRepo.getNotesForDate(date)).map((n) => [n.taskId, n.note])
+  const doneCount = rows.filter((r) => r.isCompleted).length;
+  resultArea.appendChild(
+    el("div", { class: "history-summary", text: t("history.doneOf", { done: doneCount, total: rows.length }) })
   );
 
   const list = el("div", { class: "history-list" });
-  record.completions.forEach((c) => {
-    const note = noteByTaskId.get(c.taskId) || "";
+  rows.forEach((row) => {
+    const classes = ["history-item"];
+    if (!row.isCompleted) classes.push("history-item--pending");
     list.appendChild(
-      el("div", { class: "history-item" }, [
+      el("div", { class: classes.join(" ") }, [
         el("div", { class: "history-item__main" }, [
-          el("span", { text: c.taskName }),
-          note
+          el("span", { text: row.deleted ? t("history.deletedTask") : row.taskName }),
+          row.isCompleted
+            ? null
+            : el("span", { class: "history-item__state", text: t("history.notDone") }),
+          row.note
             ? el("span", {
                 class: "history-item__notes",
-                text: t("history.note", { text: note.length > 80 ? `${note.slice(0, 77)}\u2026` : note }),
+                text: t("history.note", { text: row.note.length > 80 ? `${row.note.slice(0, 77)}\u2026` : row.note }),
               })
             : null,
         ]),
-        el("span", { class: "history-item__exp", text: `+${c.expAwarded} EXP` }),
+        el("span", {
+          class: `history-item__exp${row.isCompleted ? "" : " history-item__exp--zero"}`.trim(),
+          text: `${row.isCompleted ? "+" : ""}${row.isCompleted ? row.expValue : 0} ${t("home.expLabel")}`,
+        }),
       ])
     );
   });
