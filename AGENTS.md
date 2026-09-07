@@ -28,17 +28,23 @@ python3 -m http.server 8080   # or: npx serve daily-tracker
 # open http://localhost:8080
 ```
 
-There is **no package.json / test framework in the repo**. The test
-harness lives outside the repo at
-`C:\Users\Admin\AppData\Local\Temp\opencode\idbtest` (it runs the app's
-modules against `fake-indexeddb` in Node):
+The **regression harness lives in the repo** at `test/` (kept inside so OS
+Temp cleanups can't wipe it and it follows the code). It runs the app's
+modules against `fake-indexeddb` in Node — the only dependency, installed
+from `test/package.json`:
 
 ```powershell
-cd C:\Users\Admin\AppData\Local\Temp\opencode\idbtest
-node verify5.mjs          # full regression suite — expect "ALL VERIFIED"
-node linkall.mjs          # module-import check — expect "28 ok" + app.js
-                          # (app.js needs a DOM, so its failure is expected)
+cd daily-tracker/test
+npm install             # once, first time (creates test/node_modules)
+node verify5.mjs        # full regression suite — expect "ALL VERIFIED"
+node linkall.mjs        # module-import check — expect "34 ok" + app.js
+                        # (app.js needs a DOM, so its failure is expected)
 ```
+
+Both scripts derive the app root from their own location
+(`new URL("../", import.meta.url)`), so there is no hardcoded path to go
+stale if the project folder moves. Exclude `test/node_modules/` from any
+repo upload/backup (see `.gitignore`); recreate it with `npm install`.
 
 Ad-hoc checks used after edits:
 
@@ -48,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v36`).
+  reference in `README.md` (currently `v38`).
 
 ## Architecture
 
@@ -120,6 +126,10 @@ daily-tracker/
     └── backup/
         ├── backupManager.js  versioned JSON export/import (replace/merge)/clear
         └── csvExport.js      pure buildMonthCSV + exportMonthCSV (UTF-8 BOM)
+└── test/                  Node regression harness (lives in repo so Temp
+                          cleanups can't wipe it): verify5.mjs (68 asserts),
+                          linkall.mjs (34 ok + app.js), package.json
+                          installs fake-indexeddb
 ```
 
 ## Data model (IndexedDB `DailyTrackerDB`, v3)
@@ -542,6 +552,25 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   listed, tasks created before are (done + pending), deleted-completed
   snapshot rows survive, and note-only deleted rows appear with their note.
 
+### Toast on task edit (SW v37)
+- **Save success toast**: the Manage Tasks edit form (row edit → Save) now
+  shows a "Task updated." toast (`tasks.saved`, EN + ID) on success, so
+  the row reflow into the list has explicit positive feedback. The Task
+  Detail note save already toasts (`detail.notesSaved`/`notesCleared`);
+  this closes the one silent save path left in Tasks.
+- i18n-only changes otherwise (no DB/CSS/UI structure change).
+- **Harness rebuilt after a Temp wipe and moved into the repo**: the OS
+  previously could clear the whole temp harness
+  (`C:\Users\Admin\AppData\Local\Temp\opencode\idbtest`, `verify5.mjs` +
+  `linkall.mjs` + `node_modules\fake-indexeddb` — wiped mid-session at SW
+  v37). Both scripts were reconstructed from the app source and the
+  assertion texts elsewhere in this doc, then **relocated to `test/`** with
+  their `base` derived from `import.meta.url` (relative — the suite follows
+  the repo and can never point at a stale copy again). `linkall.mjs`
+  covers **every** versioned JS module (35) → "34 ok" + app.js instead of
+  the old curated 29-module list. The suite passes "ALL VERIFIED"
+  (68 assertions) from `cd daily-tracker/test`.
+
 ### Testing notes
 - `verify5.mjs` assertions are deliberately time-zone- and clock-aware:
   avoid asserting exact badge sets when early-bird/night-owl depend on the
@@ -549,21 +578,42 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **69** (hard-tier seeded 503-day range +
-  backfilled 40-day tail, install-prompt section, and the 13-assertion
+- Current assertion count is **68** (hard-tier seeded 503-day range +
+  backfilled 40-day tail, install-prompt section, and the 12-assertion
   day-record block added at SW v36). Don't assert exact intra-group row
   order in the day-record tests: sortOrder uses `Date.now()` so rapid
   `createTask` calls can tie, and `getAllTasks` tie-breaks by uuid key
   order — assert membership/sets and rely on the deterministic groups
   (existing rows first, deleted snapshot/note rows appended after).
-- Harness provenance: both scripts hardcode an absolute `file:///` base.
-  They used to point at a stale copy under
-  `Downloads\1\daily-tracker` and were silently testing old code; they
-  now point at this repo. If the project folder ever moves again, update
-  `base` at the top of both scripts.
+- Harness base is **relative** (`new URL("../", import.meta.url)` from
+  `test/`), so the suite follows the repo wherever it lives. The scripts
+  originally hardcoded absolute `file:///` bases and silently tested a
+  stale copy under `Downloads\1\daily-tracker`; the relative base removes
+  that failure mode entirely.
 - The hard-tier test seeds a 503-day completion range and must survive the
   real date drifting: it now backfills the 40 days ending "today" (adding
   only missing dates) so the daily-target streak check holds on any day the
   suite runs — a seed range that collides with the loop's dates silently
   toggles them off, which is exactly what broke `target-streak` when the
   wall clock moved past 2026-08-20.
+
+### Cleanup audit (SW v38)
+Small read-through fixes before going live; no DB/schema change:
+- **Report longest-streak was hardcoded English**: the stat card built
+  `\`${n} day${n===1?"":"s"}\`` literally. Now uses `t("detail.day")` /
+  `t("detail.days")` so Indonesian users see "hari" instead of "day".
+- **Profile name-save error toast used the wrong key**: the catch
+  showed `t("profile.cardFailed")` ("Card export failed") — copied from
+  the share-card handler. New dedicated i18n key `profile.nameFailed`
+  ("Saving name failed" / "Gagal simpan nama"); the share-card handler
+  keeps `profile.cardFailed`.
+- **Settings theme-picker had no try/catch**: switching theme called
+  `setTheme` with no guard — a meta write failure was an unhandled
+  rejection, unlike every other Settings action. Wrapped per the error
+  convention; new i18n key `settings.themeFailed` ("Switching theme
+  failed" / "Gagal ganti tema").
+- **Dead argument removed**: `screenTasks.js` called `initDrag(list,
+  container)` but the function only takes `listEl` — the second arg was
+  never used. Dropped the stray argument.
+- Harness still passes ALL VERIFIED (68) and linkall "34 ok + app.js";
+  CACHE_NAME → v38.

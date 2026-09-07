@@ -30,7 +30,7 @@ export async function renderTasks(container) {
   } else {
     tasks.forEach((task) => list.appendChild(buildTaskRow(task, container, todayNoteByTaskId)));
   }
-  initDrag(list, container);
+  initDrag(list);
 
   container.append(
     el("h2", { class: "section-title", text: t("tasks.title") }),
@@ -311,6 +311,7 @@ function enterEditMode(row, task, container) {
           endTime: endInput.value,
         });
         playSave();
+        showToast(t("tasks.saved"), "success");
         renderTasks(container);
       } catch (err) {
         playError();

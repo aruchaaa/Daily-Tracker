@@ -92,7 +92,7 @@ function buildNameCard(currentName, container) {
         renderProfile(container);
       } catch (err) {
         playError();
-        showToast(t("profile.cardFailed") + ": " + err.message, "error");
+        showToast(t("profile.nameFailed") + ": " + err.message, "error");
       }
     },
   });

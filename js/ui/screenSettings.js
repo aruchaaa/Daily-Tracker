@@ -401,9 +401,14 @@ function buildThemeSection(currentTheme, container) {
         class: `theme-option ${isActive ? "theme-option--active" : ""}`.trim(),
         type: "button",
         onclick: async () => {
-          await setTheme(theme.id);
-          playToggle();
-          renderSettings(container);
+          try {
+            await setTheme(theme.id);
+            playToggle();
+            renderSettings(container);
+          } catch (err) {
+            playError();
+            showToast(t("settings.themeFailed") + ": " + err.message, "error");
+          }
         },
       },
       [

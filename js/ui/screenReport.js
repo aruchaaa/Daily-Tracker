@@ -122,7 +122,7 @@ async function loadReport(yearMonth, resultArea) {
     statCard(t("report.grade"), report.grade, gradeClass(report.grade)),
     statCard(t("report.expEarned"), report.totalExpEarned),
     statCard(t("report.currentLevel"), report.currentLevel),
-    statCard(t("report.longestStreak"), `${report.longestStreak} day${report.longestStreak === 1 ? "" : "s"}`),
+    statCard(t("report.longestStreak"), `${report.longestStreak} ${report.longestStreak === 1 ? t("detail.day") : t("detail.days")}`),
     statCard(t("report.tasksDone"), `${report.completedOccurrences} / ${report.totalActiveOccurrences}`),
   ]);
 
