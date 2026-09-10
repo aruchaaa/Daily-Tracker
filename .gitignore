@@ -4,3 +4,5 @@ node_modules/
 test/package-lock.json
 # Vercel CLI local project link
 .vercel/
+.vercel
+.env*
