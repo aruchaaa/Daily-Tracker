@@ -2,12 +2,31 @@
   "name": "Daily Tracker",
   "short_name": "Daily Tracker",
   "description": "Personal daily task tracker with EXP and levels.",
+  "id": "./",
+  "lang": "en",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#161227",
   "theme_color": "#161227",
+  "categories": ["productivity", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Manage Tasks",
+      "short_name": "Tasks",
+      "description": "Add or edit your daily tasks",
+      "url": "./index.html#/tasks",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Character Profile",
+      "short_name": "Profile",
+      "description": "View your character, streaks and achievements",
+      "url": "./index.html#/profile",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
   "icons": [
     {
       "src": "icons/icon-192.png",

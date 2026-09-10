@@ -241,12 +241,36 @@ function buildTaskRow(task, container, todayNoteByTaskId) {
     },
   });
 
+  const dupBtn = el("button", {
+    class: "icon-btn",
+    type: "button",
+    text: t("tasks.duplicate"),
+    onclick: async () => {
+      errorMsg.textContent = "";
+      try {
+        await tasksRepo.createTask({
+          name: `${task.name} (copy)`,
+          expValue: task.expValue,
+          startTime: task.startTime,
+          endTime: task.endTime,
+        });
+        playSave();
+        showToast(t("tasks.duplicated", { name: task.name }), "success");
+        renderTasks(container);
+      } catch (err) {
+        playError();
+        showToast(t("tasks.duplicateFailed") + ": " + err.message, "error");
+      }
+    },
+  });
+
   row.append(
     ...(task.startTime ? [] : [el("div", { class: "drag-handle", text: "\u2261", title: t("tasks.dragHint") })]),
     nameCell,
     el("span", { class: "task-manage-row__exp", text: `${task.expValue} EXP` }),
     activeToggle,
     editBtn,
+    dupBtn,
     deleteBtn,
     errorMsg
   );

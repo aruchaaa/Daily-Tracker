@@ -110,18 +110,33 @@ function buildAchievementsSection(state) {
 
   const grid = el("div", { class: "ach-grid" });
   state.forEach((a) => {
+    const title = t(`ach.${achKey(a)}`);
+    const desc = t(`ach.${achKey(a)}Desc`);
     const hint = a.unlocked
       ? a.at
         ? t("profile.unlockedOn", { date: new Date(a.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) })
         : t("profile.unlocked")
-      : a.desc;
+      : desc;
     const icon = el("span", { class: "ach-tile__icon", text: a.icon });
     icon.style.fontSize = `${fitBadgeIconFontSize(a.icon, 26)}px`;
+    const progressRow =
+      a.unlocked || !a.progress ? null : (() => {
+        const fill = el("div", { class: "ach-tile__bar-fill" });
+        fill.style.width = `${Math.min(100, (a.progress.cur / a.progress.goal) * 100)}%`;
+        return el("div", { class: "ach-tile__progress" }, [
+          el("div", { class: "ach-tile__bar" }, [fill]),
+          el("span", {
+            class: "ach-tile__progress-num",
+            text: `${Math.min(a.progress.cur, a.progress.goal)} / ${a.progress.goal}`,
+          }),
+        ]);
+      })();
     grid.appendChild(
-      el("div", { class: `ach-tile ${a.unlocked ? "ach-tile--unlocked" : ""}`.trim(), title: a.desc }, [
+      el("div", { class: `ach-tile ${a.unlocked ? "ach-tile--unlocked" : ""}`.trim(), title: desc }, [
         icon,
-        el("span", { class: "ach-tile__title", text: a.title }),
+        el("span", { class: "ach-tile__title", text: title }),
         el("span", { class: "ach-tile__hint", text: hint }),
+        progressRow,
       ])
     );
   });
@@ -132,11 +147,50 @@ function buildAchievementsSection(state) {
   ]);
 }
 
+/** Maps a badge id to its i18n suffix (dashes -> camel, e.g.
+ *  "first-blood" -> "firstBlood"). Keep in sync with the DEFINITIONS ids. */
+function achKey(a) {
+  return a.id
+    .replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+
 /** Renders the character card (name, level ring, EXP, month grade, and the
  *  achievement badge roster) onto a canvas and downloads it as a PNG —
  *  shareable without screenshots. */
 function buildShareCardButton(stats) {
-  return el("button", {
+  const shareBtn = navigator.share
+    ? el("button", {
+        class: "btn",
+        type: "button",
+        text: t("profile.shareCard"),
+        onclick: async () => {
+          try {
+            const canvas = await renderCardCanvas(stats);
+            const blob = await new Promise((r) => canvas.toBlob(r, "image/png"));
+            const file = new File([blob], "character-card.png", { type: "image/png" });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({ files: [file], title: "Daily Tracker" });
+            } else {
+              // Fallback: just download (unsupported share target).
+              const url = canvas.toDataURL("image/png");
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "character-card.png";
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            }
+            playSave();
+          } catch (err) {
+            if (err.name === "AbortError") return; // user cancelled share sheet
+            playError();
+            showToast(t("profile.cardFailed") + ": " + err.message, "error");
+          }
+        },
+      })
+    : null;
+
+  const downloadBtn = el("button", {
     class: "btn",
     type: "button",
     text: t("profile.downloadCard"),
@@ -157,6 +211,8 @@ function buildShareCardButton(stats) {
       }
     },
   });
+
+  return el("div", { class: "accent-picker-row" }, [downloadBtn, shareBtn]);
 }
 
 function renderCardCanvas(stats) {

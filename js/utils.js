@@ -1,5 +1,7 @@
 // Shared helpers used across the app. Kept dependency-free.
 
+import { monthFullName } from "./core/i18n.js";
+
 /** Local calendar date as YYYY-MM-DD (never UTC — "today" must match the
  *  user's own clock since there is no server to arbitrate). */
 export function getTodayDateString() {
@@ -37,11 +39,6 @@ export function generateId() {
   });
 }
 
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
 export function monthName(monthNum) {
-  return MONTH_NAMES[monthNum - 1] || "";
+  return monthFullName(monthNum);
 }

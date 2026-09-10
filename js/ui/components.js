@@ -6,13 +6,7 @@
  */
 import { getTodayDateString } from "../utils.js";
 import * as sounds from "../core/sounds.js";
-
-const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const MONTH_FULL = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-const DAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+import { t, monthShortName, monthFullName, dayFullName } from "../core/i18n.js";
 
 function parseDate(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -22,7 +16,7 @@ function parseDate(dateStr) {
 /** "2026-08-20" -> "Aug 20, 2026" (year only when the range spans years). */
 function formatShortDate(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
-  return `${MONTH_SHORT[m - 1]} ${d}, ${y}`;
+  return `${monthShortName(m)} ${d}, ${y}`;
 }
 export function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
@@ -83,14 +77,14 @@ export function buildLevelPanel(progress, { clickable = false, levelUp = false }
   fill.style.width = `${progress.percent}%`;
 
   const badgeInner = el("div", { class: "level-badge__inner" }, [
-    el("span", { class: "level-badge__tag", text: "LVL" }),
+    el("span", { class: "level-badge__tag", text: t("common.lvl") }),
     el("span", { class: "level-badge__num", text: String(progress.level) }),
   ]);
 
   const badge = el("div", { class: `level-badge${levelUp ? " level-badge--level-up" : ""}` }, [badgeInner]);
 
   const badgeEl = clickable
-    ? el("a", { href: "#/profile", class: "level-badge-link", title: "View character profile" }, [badge])
+    ? el("a", { href: "#/profile", class: "level-badge-link", title: t("common.viewProfile") }, [badge])
     : badge;
 
   return el("div", { class: "level-panel" }, [
@@ -255,7 +249,7 @@ export function buildHeatmap(cells, weeksCount, { startDate, endDate } = {}) {
   let lastMonth = null;
   for (let w = 0; w < weekCount; w++) {
     const cellDate = parseDate(cells[w * 7].date);
-    const m = MONTH_FULL[cellDate.getMonth()];
+    const m = monthFullName(cellDate.getMonth() + 1);
     monthLabels.push(m !== lastMonth ? m : "");
     lastMonth = m;
   }
@@ -267,10 +261,10 @@ export function buildHeatmap(cells, weeksCount, { startDate, endDate } = {}) {
     parts.push(`<text x="${x}" y="10" class="heatmap-month-label" text-anchor="middle">${label}</text>`);
   });
 
-  DAY_FULL.forEach((label, row) => {
+  for (let row = 0; row < 7; row++) {
     const y = labelHeight + row * (cellSize + gap) + cellSize / 2 + 3;
-    parts.push(`<text x="${labelWidth - 4}" y="${y}" class="heatmap-day-label" text-anchor="end">${label}</text>`);
-  });
+    parts.push(`<text x="${labelWidth - 4}" y="${y}" class="heatmap-day-label" text-anchor="end">${dayFullName(row)}</text>`);
+  }
 
   cells.forEach((cell, i) => {
     const col = Math.floor(i / 7);

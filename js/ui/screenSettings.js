@@ -1,11 +1,11 @@
-import { exportBackup, importBackup, importBackupMerge, clearAllData } from "../backup/backupManager.js";
+import { exportBackup, importBackup, importBackupMerge, clearAllData, copyBackupToClipboard } from "../backup/backupManager.js";
 import { THEMES, setTheme, setCustomAccent } from "../core/theme.js";
 import { enableReminders, disableReminders } from "../core/notifications.js";
 import * as metaRepo from "../db/metaRepo.js";
 import { playSave, playError, playToggle, playDelete, playUndo } from "../core/sounds.js";
 import { el } from "./components.js";
 import { showConfirmDialog, showToast } from "./toast.js";
-import { canInstall, installApp } from "./installPrompt.js";
+import { canInstall, installApp, isInstalled } from "./installPrompt.js";
 import { t, setLang as setI18nLang, getLang } from "../core/i18n.js";
 
 export async function renderSettings(container) {
@@ -156,7 +156,24 @@ export async function renderSettings(container) {
         class: "settings-desc",
         text: t("settings.exportDesc"),
       }),
-      exportBtn,
+      el("div", { class: "accent-picker-row" }, [
+        exportBtn,
+        el("button", {
+          class: "btn",
+          type: "button",
+          text: t("settings.copyBtn"),
+          onclick: async () => {
+            try {
+              await copyBackupToClipboard();
+              playSave();
+              showToast(t("settings.backupCopied"), "success");
+            } catch (e) {
+              playError();
+              showToast(t("settings.copyFailed") + ": " + e.message, "error");
+            }
+          },
+        }),
+      ]),
     ]),
     el("div", { class: "settings-section" }, [
       el("h3", { text: t("settings.import") }),
@@ -352,6 +369,15 @@ function rgbToHex(rgbStr) {
 }
 
 function buildInstallSection(container) {
+  // Already installed (this session saw appinstalled, or the app is
+  // running standalone / from an iOS home screen) — no install button.
+  if (isInstalled()) {
+    return el("div", { class: "settings-section" }, [
+      el("h3", { text: t("settings.install") }),
+      el("p", { class: "settings-status", text: t("settings.installed") }),
+    ]);
+  }
+
   const btn = el("button", {
     class: "btn btn--primary",
     type: "button",

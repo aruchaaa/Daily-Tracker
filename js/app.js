@@ -78,14 +78,27 @@ window.addEventListener("hashchange", () => {
 });
 window.addEventListener("languagechanged", () => updateNavLabels());
 window.addEventListener("DOMContentLoaded", async () => {
-  await loadAndApplyTheme(); // applied before first render, to avoid a theme flash
-  const lang = await metaRepo.getLang();
-  setI18nLang(lang);
-  updateNavLabels();
-  captureInstallPrompt();
-  router();
-  registerServiceWorker();
-  scheduleTodayReminders(); // fires only if enabled + permission granted
+  try {
+    await loadAndApplyTheme(); // applied before first render, to avoid a theme flash
+    let lang = await metaRepo.getLang();
+    if (!lang) {
+      // First run: persist the best-guess language based on the browser's
+      // system language so the user doesn't land on a blank-language screen.
+      const sys = (navigator.language || "en").toLowerCase();
+      lang = sys.startsWith("id") ? "id" : "en";
+      await metaRepo.setLang(lang);
+    }
+    setI18nLang(lang);
+    updateNavLabels();
+    captureInstallPrompt();
+    await router();
+    registerServiceWorker();
+    scheduleTodayReminders(); // fires only if enabled + permission granted
+  } finally {
+    // Always let the splash go, even if booting throws — a stuck loading
+    // overlay is worse than a raw error toast.
+    dismissSplash();
+  }
   // Re-arm reminders when the calendar date rolls past midnight while
   // the app tab stays open (browser setTimeout drifts, so we poll).
   let trackedDate = getTodayDateString();
@@ -105,6 +118,13 @@ window.addEventListener("DOMContentLoaded", async () => {
 onInstallPromptReady(() => {
   if (window.location.hash === "#/settings") router();
 });
+
+function dismissSplash() {
+  const splash = document.getElementById("splash");
+  if (!splash) return;
+  splash.classList.add("splash--exit");
+  splash.addEventListener("animationend", () => splash.remove(), { once: true });
+}
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {

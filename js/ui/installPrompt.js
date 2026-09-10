@@ -4,6 +4,7 @@
  *  storage — the event object is only valid transiently, so we keep it in
  *  memory for the lifetime of the page. */
 let deferredPrompt = null;
+let vestedInstalled = false;
 const readyListeners = new Set();
 
 /** Register a callback fired whenever the install prompt becomes (or stops
@@ -32,13 +33,30 @@ export function captureInstallPrompt() {
     notifyReady();
   });
   window.addEventListener("appinstalled", () => {
+    vestedInstalled = true;
     deferredPrompt = null;
     notifyReady();
   });
 }
 
 export function canInstall() {
-  return Boolean(deferredPrompt);
+  return Boolean(deferredPrompt) && !isInstalled();
+}
+
+/** True when the app is already installed: either this session saw
+ *  `appinstalled`, or it's currently running in installed mode (standalone
+ *  window / iOS home-screen). Guards UI that shouldn't offer an install
+ *  button to someone who already has the app. */
+export function isInstalled() {
+  if (vestedInstalled) return true;
+  try {
+    if (window.matchMedia("(display-mode: standalone)").matches) return true;
+    if (navigator.standalone === true) return true;
+  } catch (err) {
+    // matchMedia/navigator.standalone can throw in odd embedded browsers;
+    // failing that check should just mean "not installed".
+  }
+  return false;
 }
 
 export async function installApp() {

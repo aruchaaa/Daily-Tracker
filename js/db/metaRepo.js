@@ -155,7 +155,8 @@ export async function getLang() {
   const db = await openDB();
   const tx = db.transaction("meta", "readonly");
   const record = await promisifyRequest(tx.objectStore("meta").get("lang"));
-  return record ? record.value : "en";
+  // Null signals "never set" so the app can auto-detect on first boot.
+  return record ? record.value : null;
 }
 
 export async function setLang(value) {

@@ -37,7 +37,7 @@ from `test/package.json`:
 cd daily-tracker/test
 npm install             # once, first time (creates test/node_modules)
 node verify5.mjs        # full regression suite — expect "ALL VERIFIED"
-node linkall.mjs        # module-import check — expect "34 ok" + app.js
+node linkall.mjs        # module-import check — expect "35 ok" + app.js
                         # (app.js needs a DOM, so its failure is expected)
 ```
 
@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v38`).
+  reference in `README.md` (currently `v41`).
 
 ## Architecture
 
@@ -64,9 +64,11 @@ daily-tracker/
 ├── manifest.json         PWA metadata (name, icons, #161227 colors, standalone)
 ├── service-worker.js     network-first, cache-fallback; precache list + self-update
 ├── css/
-│   ├── main.css          tokens, themes, layout, print
-│   └── components.css    UI parts (BEM-ish, all colors via CSS variables)
-├── icons/                icon-192.png, icon-512.png, icon-512-maskable.png
+│   ├── main.css          tokens, themes, layout, print, skip-link, shadows
+│   ├── components.css    UI parts (BEM-ish, all colors via CSS variables)
+│   └── animations.css    micro-interactions: splash, page-in, stagger, hover, press
+├── icons/                icon.svg (master stopwatch), icon-192/512/maskable PNG,
+│                         generate-icons.ps1 + generate-png.html (icon regen tools)
 └── js/
     ├── app.js            hash router, nav highlight, error boundary, theme boot,
     │                     SW registration + one-shot reload, install wiring
@@ -105,11 +107,13 @@ daily-tracker/
     │   ├── theme.js          theme registry, applyTheme, custom-accent override
     │   └── i18n.js           translation dictionary (EN + ID), t() helper,
     │                         setLang/getLang; persisted in meta as "lang"
-    ├── ui/               one file per screen + shared helpers
+├── ui/             one file per screen + shared helpers
     │   ├── components.js el() builder (+generic click-sound fallback via
     │   │                 lastPlayedSeq), level panel (clickable/levelUp options),
     │   │                 progress ring, stat card, trend chart, heatmap,
     │   │                 formatTimeRange
+    │   ├── confetti.js       lightweight confetti burst (CSS-var driven) for
+    │   │                     level-up / achievement unlocks
     │   ├── screenHome.js       checklist, daily target, sleep, backup banner,
     │   │                       level-up flash on badge
     │   ├── screenTasks.js      add/edit/delete (Undo toast; delete confirms via dialog),
@@ -128,7 +132,7 @@ daily-tracker/
         └── csvExport.js      pure buildMonthCSV + exportMonthCSV (UTF-8 BOM)
 └── test/                  Node regression harness (lives in repo so Temp
                           cleanups can't wipe it): verify5.mjs (68 asserts),
-                          linkall.mjs (34 ok + app.js), package.json
+                          linkall.mjs (35 ok + app.js), package.json
                           installs fake-indexeddb
 ```
 
@@ -617,3 +621,156 @@ Small read-through fixes before going live; no DB/schema change:
   never used. Dropped the stray argument.
 - Harness still passes ALL VERIFIED (68) and linkall "34 ok + app.js";
   CACHE_NAME → v38.
+
+### Design overhaul + Lighthouse polish (SW v39)
+Full rework of the visual shell and polish pass; no DB/schema change.
+- **Stopwatch logo**: new `icons/icon.svg` (stopwatch: gold ring, crown, side
+  button, 12 ticks, hour/minute hands) matching the "Daily Tracker" name.
+  Regenerated PNGs with `icons/generate-icons.ps1` (Windows PowerShell +
+  System.Drawing, zero deps — draws the same stopwatch at 192/512 and a
+  centered 62%-scale maskable). `icons/generate-png.html` is an alternative
+  browser tool that renders the SVG → canvas → PNG download. `index.html`
+  now links the SVG favicon (modern browsers) with PNG fallback; manifest
+  unchanged (already pointed at the regenerated PNGs).
+- **Splash screen**: full-screen themed overlay (`#splash`) with animated
+  stopwatch logo (spring in), "Daily Tracker" wordmark + tagline fade-up,
+  and an indeterminate gold progress bar. `app.js` `dismissSplash()` fades
+  it out and removes it from the DOM *after* the first screen render (never
+  before), so no flash of unstyled content. `role="status"` for A11y; the
+  blanket `prefers-reduced-motion` rule also tames it.
+- **Micro-interaction library** (`css/animations.css`): page-in, staggered
+  card/list/tile entrance (row/item nth-child), button press scale +
+  hover shadow, glassy toggle checkbox bounce, input focus glow
+  (color-mix ring), chip toggle pop, nav tab press, toast spring,
+  exp-bar/tally/completion fill sweep, achievement tile hover lift,
+  dialog pop, backup-banner pulse. All keyed to existing CSS variables so
+  every theme picks them up; `prefers-reduced-motion` in main.css kills all
+  of it.
+- **shadcn-inspired depth**: `--shadow-sm/md/lg` tokens in main.css (both
+  `:root` and the self-contained `[data-theme="stat-sheet"]` block) applied
+  as subtle card shadows on `.level-panel`, `.task-list`,
+  `.profile-name-card`, `.settings-section`. Bottom nav upgraded to a
+  frosted-glass bar (`backdrop-filter: blur(14px)`, translucent fill,
+  upward soft shadow).
+- **Lighthouse & A11y**: added `.skip-link` (offscreen → visible on focus
+  targeting `#app`), `aria-label` on nav landmarks + decorative SVG
+  `aria-hidden`, proper Open Graph tags (title/description/image/site_name),
+  `rel="canonical"`-free single-URL PWA is fine as-is, `og:theme_color` and
+  a global `color-scheme: dark` meta were removed (non-standard / wrong for
+  the light parchment theme), `meta robots index,follow` + author added.
+  All assets remain local/zero-dependency so perf is untouched.
+- Splash lives in the precache shell (`css/animations.css`, `icons/icon.svg`
+  added to APP_SHELL). CACHE_NAME → v39.
+
+### Install button hides when installed (SW v40)
+- **Install state detection** (`installPrompt.js`): new `isInstalled()` export
+  returns true when this session saw `appinstalled` (`vestedInstalled` flag),
+  when the app runs in `display-mode: standalone`, or on iOS
+  `navigator.standalone` — wrapped so `matchMedia`/`navigator` absence in
+  odd embeds fails safe to "not installed". `canInstall()` now also bails
+  when `isInstalled()`, so a stale `beforeinstallprompt` event can't reoffer
+  the button to an already-installed user.
+- **Settings UI**: `buildInstallSection` renders the Install button only
+  when `isInstalled()` is false; installed users get a
+  `settings.installed` status line ("App installed — you're good to go." /
+  "App udah keinstall — gas pol.") instead of the button. `appinstalled`
+  already re-renders Settings via `onInstallPromptReady` in app.js, so the
+  button disappears the moment installation completes.
+- Harness still passes ALL VERIFIED (68) and linkall "34 ok + app.js" —
+  the Node harness has no `window.matchMedia`, so `isInstalled()` returns
+  false there and the button still renders for the existing assertions.
+  CACHE_NAME → v40.
+
+### Finalization session (SW v41)
+A mixed audit-and-feature pass driven by a leftover session plan (A1–A3
+fixes, B4–B6 i18n gaps, C7–C13 features, D14–D16 cleanup, E polish).
+No DB/schema/backup change (still DB v3, backup v3). All work verified:
+**verify5 → ALL VERIFIED (68), linkall → "35 ok, 1 fail"** (app.js-only
+DOM failure, expected; `confetti.js` added to the module list).
+- **A1 — legacy-completion guard** (`core/achievements.js`): `isUsableCompletedAt()`
+  normalizes a completion's `completedAt` for hour-based badges
+  (`early-bird`, `night-owl`, and both hour-push hard-tier badges): records
+  imported from old backups with a null/missing `completedAt` were coerced
+  to "epoch midnight", so every legacy completion looked like a 7 AM tick
+  and could falsely satisfy hour badges. Unusable timestamps now count as
+  "not completing at that hour" instead of "7 AM".
+- **A2 — unstuck sort order** (`db/tasksRepo.js`): `updateTask` with a
+  cleared `startTime` now sets `sortOrder = Date.now()`, so the task leaves
+  its old time-based slot instead of sitting forever at an empty-schedule
+  position.
+- **A3+B4 — month/day names unified** (`core/i18n.js`, `utils.js`,
+  `ui/components.js`, `ui/screenReport.js`, `ui/screenHistory.js`): the
+  three homegrown month arrays (`utils`, `components`, `screenReport`) and
+  `screenHistory`'s weekday header array are consolidated into i18n
+  helpers (`monthShortName/monthFullName/dayFullName/dayShortName` with
+  EN + ID lists). `monthName()` delegates to `monthFullName`; heatmap month
+  labels and day headers now translate with the language instead of being
+  hardcoded English.
+- **B5 — 20 badges translated** (`core/i18n.js` + `ui/screenProfile.js` +
+  `ui/screenHome.js`): the Profile gallery and Home unlock toast render
+  `t(\`ach.${achKey(a)}\`)` / `ach.${achKey(a)}Desc` (camelCase suffix
+  mapping, e.g. `first-blood` → `ach.firstBlood`). Badge `title`/`desc`
+  in `getAchievementState` stay English (only the render layer
+  localizes); the share-card canvas keeps English per the documented
+  rule. All 20 EN + ID pairs hand-translated into natural Indonesian.
+- **B6 — dumb literals localized** (`ui/components.js`): the level badge
+  "LVL" text → `t("common.lvl")`; the badge's `aria-label`/tooltip →
+  `t("common.viewProfile")`.
+- **C7 — per-badge progress** (`core/achievements.js`, `ui/screenProfile.js`,
+  `css/components.css`): `getAchievementState()` items gain
+  `progress: {cur, goal}` via a new `progressOf(def, s)` over count-based
+  badges (`totalCompletions`, `longestStreak`, `bestTargetHitStreak`,
+  `lifetimeExp`); locked tiles with a progress object render a
+  `.ach-tile__progress` bar (`.ach-tile__bar` + inline-width
+  `.ach-tile__bar-fill`) + `cur / goal` counter. Unlocked tiles skip the
+  progress row.
+- **C8 — duplicate task** (`ui/screenTasks.js` + i18n
+  `tasks.duplicate/duplicated/duplicateFailed`): each Manage Tasks row gets
+  a duplicate icon-button that clones name (with " (copy)") plus EXP and
+  schedule, then toasts `tasks.duplicated`.
+- **C9 — copy backup to clipboard** (`backup/backupManager.js` +
+  `ui/screenSettings.js` + i18n `settings.copyBtn/backupCopied/copyFailed`):
+  `buildBackupData()/exportBackup()/writeTextToClipboard()` (hidden
+  textarea + `execCommand` fallback) refactored out of the export path;
+  the new `copyBackupToClipboard()` uses `navigator.clipboard.writeText`
+  first. Settings shows a "Copy Backup (JSON)" button beside Export inside
+  the same `.accent-picker-row` wrapper.
+- **C10 — auto language detection** (`db/metaRepo.js` + `app.js`):
+  `metaRepo.getLang()` now resolves to `null` when nothing is stored (the
+  old hardcoded `"en"` default silently skipped the browser check) — only
+  `app.js` consumes it. Boot: `navigator.language.startsWith("id")` → `"id"`
+  else `"en"`, persisted via `setLang`.
+- **C11 — native share card** (`ui/screenProfile.js` +
+  i18n `profile.shareCard`): `buildShareCardButton` now returns a row of
+  the Download button plus (only when `navigator.share` exists) a Share
+  button that converts the already-composited canvas to a `File` and calls
+  `share({files})` after `canShare` — `AbortError` (user dismissed)
+  ignored, any other failure falls back to downloading the PNG.
+- **C12 — confetti** (new `js/ui/confetti.js` + `css/animations.css` +
+  `css/main.css` + `ui/screenHome.js`): `confettiBurst()` spawns 24
+  `.confetti-piece` divs in a fixed `pointer-events: none` `.confetti-host`,
+  each sized/drifted/rotated/colored via inline `--c-*` custom properties
+  (gold-tinted palette + `hsl` hue inlays), auto-removing the host after
+  2800ms. Fires on level-up and once per fresh badge unlock in Home. The
+  blanket `prefers-reduced-motion` block in `main.css` hides the host
+  outright. `js/ui/confetti.js` + `icons/icon-180.png` added to the SW
+  APP_SHELL and `test/linkall.mjs` (hence "35 ok").
+- **C13+E — install/social polish**: `manifest.json` gains `id`, `lang`,
+  and two search-`shortcuts` (Tasks, Profile); the icon generator
+  (`icons/generate-icons.ps1`) now also emits `icon-180.png`, and
+  `index.html` points `apple-touch-icon` at it (sized 180×180);
+  `twitter:card`/title/description/image metas added alongside the Open
+  Graph block.
+- **D14–D16 — dead code sweep**: removed the two stale "quick-add"
+  comment stubs (`css/main.css`, `css/components.css`) that survived the
+  original removal; a scan of every class token in the CSS against `js/`
+  + `index.html` found no genuinely dead rules (its 56 flags were
+  animation-duration tokens plus dynamically-templated classes such as
+  `cal-cell--done-N`, `percent-ring__progress`, `.toast--success`); nine
+  dead i18n keys (`tasks.expPlaceholder`/`startPlaceholder`/`endPlaceholder`/
+  `labelStart`/`labelEnd`, `settings.deleteType`/`confirm`/`cancel`,
+  `level.toNext`) were deleted.
+- Harness/golden files: the suite's existing i18n-text assertions
+  ("Download Character Card", "Monthly Report", "History") all key off
+  preserved EN button texts; `node --check` passes on every edited module.
+  CACHE_NAME → v41.

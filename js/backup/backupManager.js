@@ -11,7 +11,7 @@ import { openDB, promisifyRequest } from "../db/db.js";
 // restore with those extras empty.
 const BACKUP_VERSION = 3;
 
-export async function exportBackup() {
+export async function buildBackupData() {
   const [tasks, completions, sleepLogs, meta, taskNotes] = await Promise.all([
     tasksRepo.getAllTasks(),
     completionsRepo.getAllCompletions(),
@@ -19,13 +19,15 @@ export async function exportBackup() {
     metaRepo.getAllMeta(),
     notesRepo.getAllNotes(),
   ]);
-
-  const backup = {
+  return {
     backupVersion: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     data: { tasks, completions, sleepLogs, meta, taskNotes },
   };
+}
 
+export async function exportBackup() {
+  const backup = await buildBackupData();
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -37,6 +39,30 @@ export async function exportBackup() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
+  await metaRepo.setLastBackupAt(new Date().toISOString());
+}
+
+/** Write text to clipboard, falling back to execCommand in contexts where
+ *  navigator.clipboard is unavailable (e.g. non-HTTPS on older browsers). */
+async function writeTextToClipboard(text) {
+  if (typeof navigator.clipboard?.writeText === "function") {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  // Legacy fallback: <textarea> + execCommand (only works in focused context).
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
+  document.body.appendChild(ta);
+  ta.select();
+  const ok = document.execCommand("copy");
+  ta.remove();
+  if (!ok) throw new Error("Clipboard unavailable");
+}
+
+export async function copyBackupToClipboard() {
+  const backup = await buildBackupData();
+  await writeTextToClipboard(JSON.stringify(backup, null, 2));
   await metaRepo.setLastBackupAt(new Date().toISOString());
 }
 

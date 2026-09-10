@@ -38,11 +38,13 @@ export async function updateTask(id, changes) {
   if (!existing) throw new Error("Task not found");
   const updated = { ...existing, ...changes, updatedAt: new Date().toISOString() };
   // Re-derive sortOrder when startTime changes so scheduled tasks
-  // stay in time order even after editing.
+  // stay in time order even after editing. Clearing the schedule turns the
+  // task back into an unscheduled one — it must leave its old time slot
+  // (a fresh timestamp lands it at the end, exactly like createTask).
   if ("startTime" in changes) {
     updated.sortOrder = changes.startTime
       ? timeToSortOrder(changes.startTime)
-      : existing.sortOrder;
+      : Date.now();
   }
   store.put(updated);
   await txDone(tx);

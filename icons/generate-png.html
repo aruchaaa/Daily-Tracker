@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Generate Daily Tracker Icons</title>
+<style>
+  body { font-family: system-ui; background: #161227; color: #f1ede3; display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 40px 20px; }
+  button { background: #e8b355; color: #1a1408; border: none; padding: 12px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 15px; }
+  button:hover { filter: brightness(1.1); }
+  .row { display: flex; gap: 20px; align-items: center; }
+  canvas { border: 1px solid #3b3158; border-radius: 8px; }
+  .cap { font-size: 13px; color: #9c93b8; text-align: center; }
+  .note { font-size: 13px; color: #9c93b8; max-width: 480px; text-align: center; }
+</style>
+</head>
+<body>
+<h1>Daily Tracker — Icon Generator</h1>
+<div class="note">
+  Opens <code>icons/icon.svg</code> in your browser, renders it at 512px, and lets
+  you download the three PWA PNGs. Runs 100% locally — nothing is uploaded.
+</div>
+<div class="row" id="previews"></div>
+<button id="btn-192">Download icon-192.png</button>
+<button id="btn-512">Download icon-512.png</button>
+<button id="btn-maskable">Download icon-512-maskable.png</button>
+
+<script>
+  const SIZES = { "icon-192.png": 192, "icon-512.png": 512, "icon-512-maskable.png": 512 };
+  let svgBlobUrl = null;
+
+  async function loadSvg() {
+    const resp = await fetch("icon.svg");
+    const text = await resp.text();
+    svgBlobUrl = URL.createObjectURL(new Blob([text], { type: "image/svg+xml" }));
+  }
+
+  function loadImage() {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = svgBlobUrl;
+    });
+  }
+
+  async function render(img, size, maskable) {
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+
+    if (!maskable) {
+      ctx.drawImage(img, 0, 0, size, size);
+    } else {
+      // Maskable safe zone: keep the stopwatch inside the central 80% circle.
+      // Scale the SVG to 78% and center it so the body never clips when the
+      // OS masks it into a rounded/off-circle shape.
+      const safe = size * 0.66;
+      const ox = (size - safe) / 2;
+      ctx.drawImage(img, ox, ox, safe, safe);
+    }
+    return canvas;
+  }
+
+  async function download(name, maskable) {
+    const img = await loadImage();
+    const size = SIZES[name];
+    const canvas = await render(img, size, maskable);
+    const a = document.createElement("a");
+    a.download = name;
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  }
+
+  async function init() {
+    await loadSvg();
+    const img = await loadImage();
+
+    // Show previews
+    const previews = document.getElementById("previews");
+    for (const [name, size] of Object.entries(SIZES)) {
+      const maskable = name.includes("maskable");
+      const canvas = await render(img, size, maskable);
+      const wrap = document.createElement("div");
+      const cap = document.createElement("div");
+      cap.className = "cap";
+      cap.textContent = `${name} (${size}\u00d7${size})`;
+      wrap.appendChild(canvas);
+      wrap.appendChild(cap);
+      previews.appendChild(wrap);
+    }
+  }
+
+  document.getElementById("btn-192").onclick = () => download("icon-192.png", false);
+  document.getElementById("btn-512").onclick = () => download("icon-512.png", false);
+  document.getElementById("btn-maskable").onclick = () => download("icon-512-maskable.png", true);
+
+  init().catch((e) => { document.body.insertAdjacentHTML("afterbegin", `<p class="note">Failed to load icon.svg: ${e.message}</p>`); });
+</script>
+</body>
+</html>

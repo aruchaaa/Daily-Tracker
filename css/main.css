@@ -54,6 +54,10 @@
   --font-stat: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono",
     Consolas, "Liberation Mono", monospace;
 
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.22);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.3);
+
   --nav-height: 64px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -97,6 +101,10 @@
      badge must be smaller than the circle/heptagon themes to keep its
      gold edge inside the level ring (inner radius 42.5px). */
   --badge-size: 64px;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.22);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.3);
 
   --bg-texture: repeating-linear-gradient(
     45deg,
@@ -240,10 +248,35 @@ a {
   outline-offset: 2px;
 }
 
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 200;
+  padding: 10px 18px;
+  background: var(--gold);
+  color: #1a1408;
+  font-weight: 700;
+  font-size: 14px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
+  }
+
+  /* Confetti keeps its pieces parked at top 0% with a 0.001ms animation
+     unless we remove the host outright — hide it entirely. */
+  .confetti-host {
+    display: none;
   }
 }
 
@@ -283,9 +316,6 @@ a {
   margin-top: 4px;
 }
 
-/* Title row with the quick-add "+" toggle (Home). */
-/* (removed with quick-add) */
-
 .empty-state {
   color: var(--ink-dim);
   font-size: 14px;
@@ -305,11 +335,14 @@ a {
   height: calc(var(--nav-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
   display: flex;
-  background: var(--bg-raised);
+  background: color-mix(in srgb, var(--bg-raised) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-top: 1px solid var(--panel-border-soft);
   max-width: 480px;
   margin: 0 auto;
   z-index: 10;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.18);
 }
 
 .nav-btn {

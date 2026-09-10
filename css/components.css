@@ -16,6 +16,7 @@
   border-radius: 3px;
   padding: 16px;
   transition: background 0.25s ease, border-color 0.25s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 /* Frame-corner accent: a small reusable "menu box" signature, applied only
@@ -253,6 +254,7 @@
   border: 1px solid var(--panel-border);
   border-radius: 3px; /* see .level-panel comment — fixed to match its bracket accent */
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .task-row {
@@ -864,6 +866,7 @@
   border-radius: 3px; /* see .level-panel comment — fixed to match its bracket accent */
   padding: 16px;
   margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
 }
 
 .profile-name-card__label {
@@ -1030,6 +1033,7 @@
   border-radius: var(--radius-md);
   padding: 16px;
   margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
 }
 
 .settings-section h3 {
@@ -1536,9 +1540,6 @@
   margin: 8px 0 10px;
 }
 
-/* ================================ Quick add ================================= */
-/* (removed with quick-add from Home; tasks are added in Manage Tasks) */
-
 /* =============================== Toast action =============================== */
 
 .toast__action {
@@ -1629,6 +1630,38 @@
   font-size: 11px;
   line-height: 1.3;
   color: var(--ink-dim);
+}
+
+/* Per-badge progress ("12 / 100") shown on locked, countable badges. */
+.ach-tile__progress {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.ach-tile__bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--panel-border);
+  overflow: hidden;
+}
+
+.ach-tile__bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--gold-dim);
+  animation: bar-fill-in 0.5s ease both;
+}
+
+.ach-tile__progress-num {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--ink-faint);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
 /* =============================== Year at a glance ============================ */

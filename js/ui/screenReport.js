@@ -5,9 +5,7 @@ import { exportMonthCSV } from "../backup/csvExport.js";
 import { playSave, playError, playOpen } from "../core/sounds.js";
 import { el, statCard, gradeClass, buildEmptyState } from "./components.js";
 import { showToast } from "./toast.js";
-import { t } from "../core/i18n.js";
-
-const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+import { t, monthShortName } from "../core/i18n.js";
 
 export async function renderReport(container) {
   container.innerHTML = "";
@@ -84,7 +82,7 @@ async function buildYearGrid(monthInput, resultArea, year) {
         title: report.totalExpEarned === 0 ? t("report.noActivity") : t("report.completionPct", { pct: report.completionPercent }),
       },
       [
-        el("span", { class: "year-tile__month", text: MONTH_SHORT[m - 1] }),
+        el("span", { class: "year-tile__month", text: monthShortName(m) }),
         report.totalExpEarned === 0
           ? el("span", { class: "year-tile__pct", text: "\u2013" })
           : el("span", { class: `year-tile__pct ${gradeClass(report.grade)}`, text: `${report.completionPercent}%` }),

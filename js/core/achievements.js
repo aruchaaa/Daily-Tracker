@@ -45,7 +45,10 @@ async function computeStats() {
   all.forEach((c) => {
     const day = byDate.get(c.date) || { exp: 0, hours: [] };
     day.exp += c.expAwarded;
-    const hour = new Date(c.completedAt).getHours();
+    // Legacy records may lack completedAt entirely (v1 imports); null/absent
+    // timestamps must not be coerced into the epoch (midnight 1970), or a
+    // UTC+7 clock would read it as "7 AM" and spuriously unlock Early Bird.
+    const hour = isUsableCompletedAt(c) ? new Date(c.completedAt).getHours() : NaN;
     if (!Number.isNaN(hour)) day.hours.push(hour);
     byDate.set(c.date, day);
   });
@@ -75,8 +78,8 @@ async function computeStats() {
     totalExp: lifetimeExp,
     longestStreak: calculateLongestStreak(all.map((c) => c.date)),
     level: getLevel(lifetimeExp),
-    earlyBird: all.some((c) => new Date(c.completedAt).getHours() < 9),
-    nightOwl: all.some((c) => new Date(c.completedAt).getHours() >= 22),
+    earlyBird: all.some((c) => isUsableCompletedAt(c) && new Date(c.completedAt).getHours() < 9),
+    nightOwl: all.some((c) => isUsableCompletedAt(c) && new Date(c.completedAt).getHours() >= 22),
     targetHit:
       dailyTarget > 0 && todays.reduce((sum, c) => sum + c.expAwarded, 0) >= dailyTarget,
     // One day that saw both an early (<9h) and a late (>=22h) completion.
@@ -85,13 +88,44 @@ async function computeStats() {
   };
 }
 
+/** Only ISO timestamps from real completions count for hour-of-day stats. */
+function isUsableCompletedAt(c) {
+  return typeof c.completedAt === "string" && c.completedAt.length > 0;
+}
+
+/** Numeric progress for badges that have a countable stat ({ cur, goal })
+ *  or null for unlock-once/event badges (early bird, night owl, full circle). */
+function progressOf(def, s) {
+  switch (def.id) {
+    case "first-blood": return { cur: s.totalCompletions, goal: 1 };
+    case "centurion": return { cur: s.totalCompletions, goal: 100 };
+    case "veteran": return { cur: s.totalCompletions, goal: 500 };
+    case "streak-7": return { cur: s.longestStreak, goal: 7 };
+    case "streak-30": return { cur: s.longestStreak, goal: 30 };
+    case "streak-100": return { cur: s.longestStreak, goal: 100 };
+    case "streak-365": return { cur: s.longestStreak, goal: 365 };
+    case "exp-1000": return { cur: s.totalExp, goal: 1000 };
+    case "exp-5000": return { cur: s.totalExp, goal: 5000 };
+    case "exp-10000": return { cur: s.totalExp, goal: 10000 };
+    case "level-5": return { cur: s.level, goal: 5 };
+    case "level-10": return { cur: s.level, goal: 10 };
+    case "level-15": return { cur: s.level, goal: 15 };
+    case "level-20": return { cur: s.level, goal: 20 };
+    case "target-streak-7": return { cur: s.targetHitStreak, goal: 7 };
+    case "target-streak-30": return { cur: s.targetHitStreak, goal: 30 };
+    case "target-day": return { cur: s.targetHit ? 1 : 0, goal: 1 };
+    default: return null;
+  }
+}
+
 /** Full badge state for the Profile gallery. */
 export async function getAchievementState() {
   const [stats, unlockedEntries] = await Promise.all([computeStats(), metaRepo.getUnlockedAchievements()]);
   const byId = new Map(unlockedEntries.map((e) => [e.id, e]));
   return DEFINITIONS.map((def) => {
     const entry = byId.get(def.id);
-    return { ...def, unlocked: Boolean(entry), at: entry ? entry.at : null, met: def.check(stats) };
+    const unlocked = Boolean(entry);
+    return { ...def, unlocked, at: entry ? entry.at : null, met: def.check(stats), progress: progressOf(def, stats), stats };
   });
 }
 

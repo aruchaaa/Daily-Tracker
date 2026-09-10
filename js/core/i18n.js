@@ -52,14 +52,9 @@ const translations = {
     "tasks.emptyTitle": "No tasks yet",
     "tasks.emptyDesc": "Add your first task above.",
     "tasks.namePlaceholder": "Task name",
-    "tasks.expPlaceholder": "EXP",
-    "tasks.startPlaceholder": "Start time (optional)",
-    "tasks.endPlaceholder": "End time (optional)",
     "tasks.labelName": "Task Name",
     "tasks.labelExp": "EXP Reward",
     "tasks.labelSchedule": "Schedule (optional)",
-    "tasks.labelStart": "Start",
-    "tasks.labelEnd": "End",
     "tasks.add": "+ Add",
     "tasks.giveName": "Give the task a name first.",
     "tasks.expRange": "EXP must be between 1 and 1000.",
@@ -78,6 +73,9 @@ const translations = {
     "tasks.deleteFailed": "Delete failed",
     "tasks.save": "Save",
     "tasks.saved": "Task updated.",
+    "tasks.duplicate": "Duplicate",
+    "tasks.duplicated": "Task \u201c{name}\u201d duplicated.",
+    "tasks.duplicateFailed": "Duplicating task failed",
     "tasks.cancel": "Cancel",
     "tasks.saveFailed": "Saving changes failed",
     "tasks.updateFailed": "Update failed",
@@ -127,12 +125,54 @@ const translations = {
     "profile.nameFailed": "Saving name failed",
     "profile.characterName": "Character Name",
     "profile.downloadCard": "Download Character Card (PNG)",
+    "profile.shareCard": "Share Card",
     "profile.cardFailed": "Card export failed",
     "profile.unlocked": "Unlocked",
     "profile.unlockedOn": "Unlocked {date}",
     "profile.ofAchievements": "{n} / {total} achievements unlocked",
     "profile.sleepLog": "sleep",
     "profile.noLog": "no log",
+
+    "ach.firstBlood": "First Blood",
+    "ach.firstBloodDesc": "Complete your first task.",
+    "ach.centurion": "Centurion",
+    "ach.centurionDesc": "Clear 100 tasks in total.",
+    "ach.streak7": "On Fire",
+    "ach.streak7Desc": "Reach a 7-day streak.",
+    "ach.streak30": "Unstoppable",
+    "ach.streak30Desc": "Reach a 30-day streak.",
+    "ach.earlyBird": "Early Bird",
+    "ach.earlyBirdDesc": "Complete a task before 9 AM.",
+    "ach.nightOwl": "Night Owl",
+    "ach.nightOwlDesc": "Complete a task after 10 PM.",
+    "ach.level5": "Rising Star",
+    "ach.level5Desc": "Reach level 5.",
+    "ach.level10": "Legend",
+    "ach.level10Desc": "Reach level 10.",
+    "ach.exp1000": "Wealthy",
+    "ach.exp1000Desc": "Earn 1,000 total EXP.",
+    "ach.targetDay": "On Target",
+    "ach.targetDayDesc": "Hit your daily EXP target.",
+    "ach.veteran": "Veteran",
+    "ach.veteranDesc": "Clear 500 tasks in total.",
+    "ach.targetStreak7": "Perfect Week",
+    "ach.targetStreak7Desc": "Hit your daily EXP target 7 days in a row.",
+    "ach.fullCircle": "Full Circle",
+    "ach.fullCircleDesc": "Complete a task before 9 AM and after 10 PM on the same day.",
+    "ach.exp5000": "EXP Tycoon",
+    "ach.exp5000Desc": "Earn 5,000 total EXP.",
+    "ach.level15": "Ascendant",
+    "ach.level15Desc": "Reach level 15.",
+    "ach.streak100": "Century",
+    "ach.streak100Desc": "Reach a 100-day streak.",
+    "ach.targetStreak30": "Unbreakable",
+    "ach.targetStreak30Desc": "Hit your daily EXP target 30 days in a row.",
+    "ach.exp10000": "EXP Mogul",
+    "ach.exp10000Desc": "Earn 10,000 total EXP.",
+    "ach.level20": "Transcendent",
+    "ach.level20Desc": "Reach level 20.",
+    "ach.streak365": "Year of Iron",
+    "ach.streak365Desc": "Reach a 365-day streak.",
 
     "history.title": "History",
     "history.total": "Total: {exp} EXP",
@@ -183,6 +223,7 @@ const translations = {
     "settings.installing": "Installing\u2026",
     "settings.installCancelled": "Install was cancelled.",
     "settings.installFailed": "Install failed",
+    "settings.installed": "App installed — you're good to go.",
     "settings.appearance": "Appearance",
     "settings.appearanceDesc": "Pick a visual theme \u2014 changes apply instantly.",
     "settings.customAccent": "Custom Accent",
@@ -210,7 +251,10 @@ const translations = {
     "settings.export": "Export",
     "settings.exportDesc": "Download all your tasks, history, sleep logs, and settings as a JSON file. Do this regularly \u2014 everything lives only on this device.",
     "settings.exportBtn": "Export Backup (JSON)",
+    "settings.copyBtn": "Copy Backup (JSON)",
     "settings.backupDownloaded": "Backup downloaded.",
+    "settings.backupCopied": "Backup copied to clipboard.",
+    "settings.copyFailed": "Copying backup failed",
     "settings.exportFailed": "Export failed",
     "settings.import": "Import",
     "settings.importDesc": "Replace restores from a previously exported backup file, overwriting everything on this device. Merge adds only what's missing \u2014 nothing is removed.",
@@ -234,18 +278,16 @@ const translations = {
     "settings.deleteAll": "Delete All Data",
     "settings.deleteTitle": "Delete everything?",
     "settings.deleteMsg": "This permanently deletes ALL tasks, history, sleep logs, EXP, and settings from this device. Type DELETE to confirm.",
-    "settings.deleteType": "DELETE",
     "settings.allDeleted": "All data deleted. Reloading\u2026",
     "settings.deleteFailed": "Delete failed",
-    "settings.confirm": "Confirm",
-    "settings.cancel": "Cancel",
     "settings.language": "Language",
     "settings.languageDesc": "Choose the display language for the app interface.",
     "settings.english": "English",
     "settings.indonesian": "Bahasa Indonesia",
     "settings.languageFailed": "Switching language failed",
 
-    "level.toNext": "EXP to next level",
+    "common.lvl": "LVL",
+    "common.viewProfile": "View character profile",
 
     "confirm.typePlaceholder": "Type {text} to confirm",
     "error.screenFailed": "Something went wrong loading this screen. Please reload the app.",
@@ -304,14 +346,9 @@ const translations = {
     "tasks.emptyTitle": "Belum ada tugas",
     "tasks.emptyDesc": "Bikin tugas pertama kamu di atas.",
     "tasks.namePlaceholder": "Nama tugas",
-    "tasks.expPlaceholder": "EXP",
-    "tasks.startPlaceholder": "Waktu mulai (opsional)",
-    "tasks.endPlaceholder": "Waktu selesai (opsional)",
     "tasks.labelName": "Nama Tugas",
     "tasks.labelExp": "Hadiah EXP",
     "tasks.labelSchedule": "Jadwal (opsional)",
-    "tasks.labelStart": "Mulai",
-    "tasks.labelEnd": "Selesai",
     "tasks.add": "+ Tambah",
     "tasks.giveName": "Kasih nama dulu.",
     "tasks.expRange": "EXP harus antara 1 sampai 1000.",
@@ -330,6 +367,9 @@ const translations = {
     "tasks.deleteFailed": "Gagal hapus",
     "tasks.save": "Simpan",
     "tasks.saved": "Tugas diupdate.",
+    "tasks.duplicate": "Duplikat",
+    "tasks.duplicated": "Tugas \u201c{name}\u201d diduplikat.",
+    "tasks.duplicateFailed": "Gagal duplikat tugas",
     "tasks.cancel": "Batal",
     "tasks.saveFailed": "Gagal simpan perubahan",
     "tasks.updateFailed": "Gagal update",
@@ -379,12 +419,54 @@ const translations = {
     "profile.nameFailed": "Gagal simpan nama",
     "profile.characterName": "Nama Karakter",
     "profile.downloadCard": "Download Kartu Karakter (PNG)",
+    "profile.shareCard": "Bagikan Kartu",
     "profile.cardFailed": "Gagal download kartu",
     "profile.unlocked": "Terbuka",
     "profile.unlockedOn": "Terbuka {date}",
     "profile.ofAchievements": "{n} / {total} pencapaian terbuka",
     "profile.sleepLog": "tidur",
     "profile.noLog": "belum ada",
+
+    "ach.firstBlood": "Darah Pertama",
+    "ach.firstBloodDesc": "Selesaikan tugas pertama kamu.",
+    "ach.centurion": "Centurion",
+    "ach.centurionDesc": "Tuntas total 100 tugas.",
+    "ach.streak7": "Ngegas",
+    "ach.streak7Desc": "Raih streak 7 hari.",
+    "ach.streak30": "Nggak Kebentok",
+    "ach.streak30Desc": "Raih streak 30 hari.",
+    "ach.earlyBird": "Burung Pagi",
+    "ach.earlyBirdDesc": "Selesaikan tugas sebelum jam 9 pagi.",
+    "ach.nightOwl": "Burung Malam",
+    "ach.nightOwlDesc": "Selesaikan tugas setelah jam 10 malam.",
+    "ach.level5": "Bintang Naik",
+    "ach.level5Desc": "Capai level 5.",
+    "ach.level10": "Legenda",
+    "ach.level10Desc": "Capai level 10.",
+    "ach.exp1000": "Kaya",
+    "ach.exp1000Desc": "Kumpulkan total 1.000 EXP.",
+    "ach.targetDay": "Tepat Sasaran",
+    "ach.targetDayDesc": "Penuhi target EXP harian.",
+    "ach.veteran": "Veteran",
+    "ach.veteranDesc": "Tuntas total 500 tugas.",
+    "ach.targetStreak7": "Minggu Sempurna",
+    "ach.targetStreak7Desc": "Penuhi target EXP harian 7 hari beruntun.",
+    "ach.fullCircle": "Lingkar Penuh",
+    "ach.fullCircleDesc": "Selesaikan tugas sebelum jam 9 pagi dan setelah jam 10 malam di hari yang sama.",
+    "ach.exp5000": "Taipan EXP",
+    "ach.exp5000Desc": "Kumpulkan total 5.000 EXP.",
+    "ach.level15": "Naik Daun",
+    "ach.level15Desc": "Capai level 15.",
+    "ach.streak100": "Abad",
+    "ach.streak100Desc": "Raih streak 100 hari.",
+    "ach.targetStreak30": "Nggak Tergoyahkan",
+    "ach.targetStreak30Desc": "Penuhi target EXP harian 30 hari beruntun.",
+    "ach.exp10000": "Mogul EXP",
+    "ach.exp10000Desc": "Kumpulkan total 10.000 EXP.",
+    "ach.level20": "Transenden",
+    "ach.level20Desc": "Capai level 20.",
+    "ach.streak365": "Setahun Besi",
+    "ach.streak365Desc": "Raih streak 365 hari.",
 
     "history.title": "Riwayat",
     "history.total": "Total: {exp} EXP",
@@ -435,6 +517,7 @@ const translations = {
     "settings.installing": "Installing\u2026",
     "settings.installCancelled": "Install dibatalkan.",
     "settings.installFailed": "Gagal install",
+    "settings.installed": "App udah keinstall — gas pol.",
     "settings.appearance": "Tampilan",
     "settings.appearanceDesc": "Pilih tema \u2014 langsung berubah.",
     "settings.customAccent": "Warna Aksen",
@@ -462,7 +545,10 @@ const translations = {
     "settings.export": "Backup",
     "settings.exportDesc": "Download semua data (tugas, riwayat, tidur, pengaturan) sebagai file JSON. Backup rutin ya \u2014 data cuma ada di device ini.",
     "settings.exportBtn": "Backup (JSON)",
+    "settings.copyBtn": "Salin Backup (JSON)",
     "settings.backupDownloaded": "Backup berhasil didownload.",
+    "settings.backupCopied": "Backup tersalin ke clipboard.",
+    "settings.copyFailed": "Gagal menyalin backup",
     "settings.exportFailed": "Gagal backup",
     "settings.import": "Restore",
     "settings.importDesc": "Replace = timpa semua data dari file backup. Merge = tambah yang belum ada, nggak ada yang dihapus.",
@@ -486,18 +572,16 @@ const translations = {
     "settings.deleteAll": "Hapus Semua Data",
     "settings.deleteTitle": "Hapus semua?",
     "settings.deleteMsg": "SEMUA tugas, riwayat, tidur, EXP, dan pengaturan akan DIHAPUS dari device ini. Ketik DELETE buat konfirmasi.",
-    "settings.deleteType": "DELETE",
     "settings.allDeleted": "Semua data dihapus. Muat ulang\u2026",
     "settings.deleteFailed": "Gagal hapus",
-    "settings.confirm": "Konfirmasi",
-    "settings.cancel": "Batal",
     "settings.language": "Bahasa",
     "settings.languageDesc": "Pilih bahasa tampilan app.",
     "settings.english": "English",
     "settings.indonesian": "Bahasa Indonesia",
     "settings.languageFailed": "Gagal ganti bahasa",
 
-    "level.toNext": "EXP ke level berikutnya",
+    "common.lvl": "LVL",
+    "common.viewProfile": "Lihat profil karakter",
 
     "confirm.typePlaceholder": "Ketik {text} buat konfirmasi",
     "error.screenFailed": "Gagal memuat layar ini. Muat ulang app.",
@@ -523,4 +607,54 @@ export function t(key, vars = {}) {
     str = str.replaceAll(`{${k}}`, v);
   }
   return str;
+}
+
+const monthShortNames = {
+  en: [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ],
+  id: [
+    "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+  ],
+};
+
+const monthFullNames = {
+  en: [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ],
+  id: [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+  ],
+};
+
+/** "1".."12" -> localized short month name ("Jan" / "Mei" ...). */
+export function monthShortName(monthNum) {
+  return (monthShortNames[currentLang]?.[monthNum - 1] ?? monthShortNames.en[monthNum - 1]) || "";
+}
+
+/** "1".."12" -> localized full month name ("January" / "Januari" ...). */
+export function monthFullName(monthNum) {
+  return (monthFullNames[currentLang]?.[monthNum - 1] ?? monthFullNames.en[monthNum - 1]) || "";
+}
+
+const dayFullNames = {
+  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  id: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
+};
+
+const dayShortNames = {
+  en: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
+  id: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
+};
+
+/** Sunday=0 .. Saturday=6 -> localized full day name. */
+export function dayFullName(dayNum) {
+  return dayFullNames[currentLang]?.[dayNum] ?? dayFullNames.en[dayNum] ?? "";
+}
+
+/** Sunday=0 .. Saturday=6 -> localized short day name ("Su" / "Min" ...). */
+export function dayShortName(dayNum) {
+  return dayShortNames[currentLang]?.[dayNum] ?? dayShortNames.en[dayNum] ?? "";
 }

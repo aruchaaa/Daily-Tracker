@@ -8,9 +8,15 @@ import { playTick, playUncheck, playSave, playError, playLevelUp } from "../core
 import { getTodayDateString } from "../utils.js";
 import { el, buildLevelPanel, buildEmptyState, buildProgressRing, formatTimeRange } from "./components.js";
 import { showToast } from "./toast.js";
+import { confettiBurst } from "./confetti.js";
 import { t } from "../core/i18n.js";
 
 const BACKUP_REMINDER_DAYS = 7;
+
+/** Maps "first-blood" -> "firstBlood", etc., for i18n ach.* key lookups. */
+function achKey(a) {
+  return a.id.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
 let bannerDismissedThisSession = false;
 
 export async function renderHome(container, { justLeveledUp = false, justCheckedId = null } = {}) {
@@ -187,11 +193,13 @@ function buildCheckboxRow(task, isCompleted, progress, container, justCheckedId)
             if (justLeveledUp) {
               playLevelUp();
               showToast(t("home.levelUp", { n: levelAfter }), "info");
+              confettiBurst();
             }
             const fresh = await evaluateAchievements();
             fresh.forEach((a) => {
               playLevelUp();
-              showToast(t("home.achievementUnlocked", { title: a.title }), "success");
+              showToast(t("home.achievementUnlocked", { title: t(`ach.${achKey(a)}`) }), "success");
+              confettiBurst();
             });
           } else if (result.action === "removed") {
             playUncheck();

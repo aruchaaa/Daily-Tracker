@@ -2,11 +2,9 @@ import { getDayRecord } from "../core/history.js";
 import * as completionsRepo from "../db/completionsRepo.js";
 import { getTodayDateString, formatDateDisplay } from "../utils.js";
 import { playOpen, playSave, playError } from "../core/sounds.js";
-import { t } from "../core/i18n.js";
+import { t, dayShortName } from "../core/i18n.js";
 import { el, buildEmptyState } from "./components.js";
 import { showToast } from "./toast.js";
-
-const WEEKDAY_HEADERS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 export async function renderHistory(container) {
   container.innerHTML = "";
@@ -57,7 +55,7 @@ async function loadMonth(yearMonth, calendarHost, resultArea) {
   const firstWeekday = new Date(year, month - 1, 1).getDay();
 
   const grid = el("div", { class: "cal-grid" });
-  WEEKDAY_HEADERS.forEach((w) => grid.appendChild(el("div", { class: "cal-head", text: w })));
+  for (let w = 0; w < 7; w++) grid.appendChild(el("div", { class: "cal-head", text: dayShortName(w) }));
 
   let selectedDate = today;
   if (!today.startsWith(yearMonth)) selectedDate = `${yearMonth}-01`;

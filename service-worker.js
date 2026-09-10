@@ -6,7 +6,7 @@
 // pure cache-first strategy, at the cost of a network round-trip on every
 // online load (irrelevant here since there's no real data to wait on).
 
-const CACHE_NAME = "daily-tracker-v38";
+const CACHE_NAME = "daily-tracker-v41";
 
 const APP_SHELL = [
   "./",
@@ -14,6 +14,7 @@ const APP_SHELL = [
   "./manifest.json",
   "./css/main.css",
   "./css/components.css",
+  "./css/animations.css",
   "./js/app.js",
   "./js/utils.js",
   "./js/db/db.js",
@@ -40,6 +41,7 @@ const APP_SHELL = [
   "./js/ui/components.js",
   "./js/ui/toast.js",
   "./js/ui/installPrompt.js",
+  "./js/ui/confetti.js",
   "./js/ui/screenHome.js",
   "./js/ui/screenTasks.js",
   "./js/ui/screenTaskDetail.js",
@@ -51,6 +53,8 @@ const APP_SHELL = [
   "./js/backup/csvExport.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./icons/icon.svg",
+  "./icons/icon-180.png",
 ];
 
 self.addEventListener("install", (event) => {
