@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v48`. The app also auto-reloads itself once when a newer
+`daily-tracker-v49`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,22 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v49)
+
+- **Manifest rebuilt to the exact shape proven to work** (mirrors the
+  `missmybae` reference app that installs reliably on the same browser):
+  absolute icon paths, a 192px *and* 512px maskable icon pair (new
+  `icons/icon-maskable-192.png` + renamed `icons/icon-maskable-512.png`),
+  `start_url`/`scope` set to `/`, and the experimental extras dropped —
+  `id`, `categories`, and launcher `shortcuts` (their fragment URLs are
+  technically disallowed by the manifest spec and can make the browser
+  treat the manifest as invalid, silently killing `beforeinstallprompt`).
+- **"Installed it before?" tip** in the Settings install guide: Chromium
+  (Chrome/Brave/Edge) stops offering install forever once it thinks the
+  app was previously installed — e.g. the v43-era dialog that "did
+  nothing". If the install option is missing, delete the old
+  "Daily Tracker" entry in `brave://apps` / `chrome://apps` first.
 
 ## What's new (cache v48)
 

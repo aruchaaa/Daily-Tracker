@@ -1,6 +1,7 @@
 # Daily Tracker — stopwatch PWA icon generator (Windows PowerShell + System.Drawing)
-# Draws icon-192.png, icon-180.png, icon-512.png, icon-512-maskable.png to match icons/icon.svg.
-# Re-run after changing the SVG style so the manifest PNGs stay in sync.
+# Draws icon-192.png, icon-180.png, icon-512.png, icon-maskable-192.png and
+# icon-maskable-512.png to match icons/icon.svg. Re-run after changing the SVG
+# style so the manifest PNGs stay in sync.
 
 Add-Type -AssemblyName System.Drawing
 
@@ -101,6 +102,7 @@ $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $icon192 = Draw-Stopwatch -S 192
 $icon192.Save((Join-Path $dir "icon-192.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+Save-Maskable -InBmp $icon192 -Size 192 -Path (Join-Path $dir "icon-maskable-192.png")
 $icon192.Dispose()
 
 $icon180 = Draw-Stopwatch -S 180
@@ -109,7 +111,7 @@ $icon180.Dispose()
 
 $icon512 = Draw-Stopwatch -S 512
 $icon512.Save((Join-Path $dir "icon-512.png"), [System.Drawing.Imaging.ImageFormat]::Png)
-Save-Maskable -InBmp $icon512 -Size 512 -Path (Join-Path $dir "icon-512-maskable.png")
+Save-Maskable -InBmp $icon512 -Size 512 -Path (Join-Path $dir "icon-maskable-512.png")
 $icon512.Dispose()
 
 Write-Host "Icons written to $dir"

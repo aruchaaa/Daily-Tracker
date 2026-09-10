@@ -17,15 +17,15 @@
 <h1>Daily Tracker — Icon Generator</h1>
 <div class="note">
   Opens <code>icons/icon.svg</code> in your browser, renders it at 512px, and lets
-  you download the three PWA PNGs. Runs 100% locally — nothing is uploaded.
+  you download the four PWA PNGs. Runs 100% locally — nothing is uploaded.
 </div>
 <div class="row" id="previews"></div>
 <button id="btn-192">Download icon-192.png</button>
 <button id="btn-512">Download icon-512.png</button>
-<button id="btn-maskable">Download icon-512-maskable.png</button>
+<button id="btn-maskable">Download icon-maskable-512.png</button>
 
 <script>
-  const SIZES = { "icon-192.png": 192, "icon-512.png": 512, "icon-512-maskable.png": 512 };
+  const SIZES = { "icon-192.png": 192, "icon-512.png": 512, "icon-maskable-512.png": 512 };
   let svgBlobUrl = null;
 
   async function loadSvg() {
@@ -93,7 +93,7 @@
 
   document.getElementById("btn-192").onclick = () => download("icon-192.png", false);
   document.getElementById("btn-512").onclick = () => download("icon-512.png", false);
-  document.getElementById("btn-maskable").onclick = () => download("icon-512-maskable.png", true);
+  document.getElementById("btn-maskable").onclick = () => download("icon-maskable-512.png", true);
 
   init().catch((e) => { document.body.insertAdjacentHTML("afterbegin", `<p class="note">Failed to load icon.svg: ${e.message}</p>`); });
 </script>

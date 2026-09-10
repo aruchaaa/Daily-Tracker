@@ -226,6 +226,7 @@ const translations = {
     "settings.installGuideDesktop": "Browser menu (\u22EE) \u2192 Save and Share \u2192 Install page as app\u2026",
 
     "settings.installGuideAndroid": "Browser menu (\u22EE) \u2192 Install app (or Add to Home screen).",
+    "settings.installExisting": "Installed it before and it vanished? Delete the old \u201cDaily Tracker\u201d entry in your browser's app list (brave://apps / chrome://apps) first \u2014 Chromium hides the install option once it thinks the app is already installed.",
     "settings.installing": "Installing\u2026",
     "settings.installCancelled": "Install was cancelled.",
     "settings.installFailed": "Install failed",
@@ -540,6 +541,7 @@ const translations = {
     "settings.installGuideDesktop": "Menu browser (\u22EE) \u2192 Save and Share \u2192 Install page as app\u2026",
 
     "settings.installGuideAndroid": "Menu browser (\u22EE) \u2192 Install app (atau Add to Home screen).",
+    "settings.installExisting": "Pernah install terus app-nya ilang? Hapus dulu entri \u201cDaily Tracker\u201d di daftar aplikasi browser (brave://apps / chrome://apps) \u2014 opsi install nggak bakal muncul kalau browser ngira app-nya udah keinstall.",
     "settings.installing": "Installing\u2026",
     "settings.installCancelled": "Install dibatalkan.",
     "settings.installFailed": "Gagal install",

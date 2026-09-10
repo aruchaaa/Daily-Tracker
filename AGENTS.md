@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v48`). The manifest is
+  reference in `README.md` (currently `v49`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -197,9 +197,9 @@ Level is always derived from lifetime EXP, never stored.
 - **Service worker:** cache name is the manual versioning mechanism; bump
   it whenever the precache shell or any cached JS/CSS changes. Precache
   list is **complete** — every module under `js/` is in `APP_SHELL`; when
-  adding a new module, add it there too. `icons/icon-512-maskable.png` is
-  deliberately manifest-only (fetched at install time, runtime-cached
-  afterwards).
+  adding a new module, add it there too. `icons/icon-maskable-192.png` and
+  `icons/icon-maskable-512.png` are deliberately manifest-only
+  (fetched at install time, runtime-cached afterwards).
 - **Achievements:** keep the declarative `ACHIEVEMENTS` array in
   `core/achievements.js`; a badge needs `id/title/icon/desc/check`. All
   checks read one shared `stats` object built by `computeStats()` — add
@@ -1023,3 +1023,46 @@ harness only, no DB/schema/backup change):
   `git push` to `aruchaaa/Daily-Tracker` `main` → Vercel
   `dailytrackerv1` → https://levelupdailytracker.vercel.app.
   CACHE_NAME → v48.
+
+### Manifest mirrored to the proven reference (SW v49)
+User report: "the install button still fails to install — make it work like
+the missmybae project". Diagnosis: a field-by-field audit of the live
+daily-tracker vs the reference that installs reliably on the same browser.
+Both sites already passed every documented Chrome/Brave installability
+criterion (HTTPS, valid manifest served `application/manifest+json`,
+192+512 PNG icons with correct real dimensions, `start_url` reachable,
+SW with a fetch handler, every APP_SHELL URL HTTP 200) — so the audit
+focused on what *differs* from the reference: (a) our manifest carried
+`id`, `categories`, and two `shortcuts` whose `url` values are fragment
+URLs — fragments are technically disallowed for shortcut URLs by the Web
+App Manifest spec, and a browser that rejects any manifest member logs it
+as a parse error, which can silently kill installability/beforeinstallprompt;
+(b) the reference's icons are absolute `/icons/...` paths with BOTH a 192px
+and 512px maskable; (c) the strongest hypothesis of all — the user's v43
+"dialog appeared but did nothing" likely left Brave believing the app was
+already installed, and per Chromium issue 40550435 **`beforeinstallprompt`
+is never sent again if the app was previously installed**, exactly matching
+the dead-button symptoms from v46 through v48. Fixes (icons + manifest +
+i18n/ui only; no DB/schema/backup change):
+- **`manifest.webmanifest` rebuilt to the reference's exact shape**: icons
+  use absolute `/icons/...` src; two maskable entries (192 + 512) added;
+  `id`, `categories`, and the fragment-URL `shortcuts` removed; `start_url`
+  and `scope` set to `/`; display/orientation/colors/lang kept.
+- **Icon rename + new size**: `icons/icon-512-maskable.png` renamed
+  `icons/icon-maskable-512.png`, and a matching `icons/icon-maskable-192.png`
+  added so both maskable sizes exist (like the reference). `generate-icons.ps1`
+  and `generate-png.html` updated to emit/download the new names; all PNGs
+  regenerated and verified 192/512 real pixels (System.Drawing). Maskable
+  icons stay manifest-only (not in APP_SHELL) per the existing convention.
+- **Previously-installed guidance** (`ui/screenSettings.js` +
+  `core/i18n.js`): the desktop install guide gains a third step —
+  `settings.installExisting` (EN + ID) — telling the user to delete a stale
+  "Daily Tracker" entry in `brave://apps` / `chrome://apps` so Chromium
+  re-offers install; the app itself can't detect or clear that browser-side
+  state.
+- **SW/docs**: CACHE_NAME → v49; README "What's new (cache v49)" section +
+  version line; AGENTS history entry. Harness untouched (verify5 still **79**;
+  install-prompt logic unchanged); the affirmation — v49 changes, `node --check`
+  all JS, verify5 ALL VERIFIED (79) PASS, linkall 35 ok/1 fail, manifest parses
+  as JSON, CSS braces balanced. Push to `main` auto-deploys.
+  CACHE_NAME → v49.
