@@ -8,9 +8,6 @@ import { showConfirmDialog, showToast } from "./toast.js";
 import { canInstall, installApp, isInstalled, isIOS, isAndroid } from "./installPrompt.js";
 import { t, setLang as setI18nLang, getLang } from "../core/i18n.js";
 
-// Display label only — bump together with service-worker.js CACHE_NAME.
-const APP_VERSION = "v45";
-
 export async function renderSettings(container) {
   container.innerHTML = "";
 
@@ -215,10 +212,6 @@ function buildAboutSection() {
       el("div", { class: "about-list__block" }, [
         el("span", { class: "about-list__label", text: t("about.tech") }),
       ]),
-      el("div", { class: "about-list__block" }, [
-        el("span", { class: "about-list__label", text: t("about.version") }),
-        el("span", { class: "about-list__text", text: APP_VERSION }),
-      ]),
     ]),
   ]);
 }
@@ -397,42 +390,13 @@ function rgbToHex(rgbStr) {
 
 function buildInstallSection(container) {
   // Already installed (this session saw appinstalled, or the app is
-  // running standalone / from an iOS home screen) — no install button.
+  // running standalone / from an iOS home screen) — no install UI.
   if (isInstalled()) {
     return el("div", { class: "settings-section" }, [
       el("h3", { text: t("settings.install") }),
       el("p", { class: "settings-status", text: t("settings.installed") }),
     ]);
   }
-
-  const btn = el("button", {
-    class: "btn btn--primary",
-    type: "button",
-    text: t("settings.installBtn"),
-    onclick: async () => {
-      if (!canInstall()) {
-        // The browser hasn't handed us a `beforeinstallprompt` yet (or
-        // never will, on iOS). The guide panel below says the rest — here
-        // just a short heads-up so the tap isn't silent.
-        playError();
-        showToast(isIOS() ? t("settings.installIOS") : t("settings.installNotReady"), "info", 4200);
-        return;
-      }
-      try {
-        const ok = await installApp();
-        if (ok) {
-          playSave();
-          showToast(t("settings.installing"), "success");
-        } else {
-          showToast(t("settings.installCancelled"), "info");
-        }
-        renderSettings(container);
-      } catch (err) {
-        playError();
-        showToast(t("settings.installFailed") + ": " + err.message, "error");
-      }
-    },
-  });
 
   // iOS has no programmatic install — only the Share → Add to Home Screen
   // path exists, so show that instead of a dead button.
@@ -446,21 +410,50 @@ function buildInstallSection(container) {
     ]);
   }
 
-  // Chromium engines (Chrome/Brave/Edge). The in-app button needs the
-  // browser to hand us `beforeinstallprompt`, which it doesn't always do —
-  // so pair it with an always-correct fallback: the browser's own install
-  // affordance, which works whenever the app is installable.
-  const guideLine = isAndroid() ? t("settings.installGuideAndroid") : t("settings.installGuideDesktop");
-
-  return el("div", { class: "settings-section" }, [
+  // Chromium engines (Chrome/Brave/Edge). The in-app button only works if
+  // the browser has handed us a `beforeinstallprompt` event, so render it
+  // only in that case — never a dead button. When there's no event (Brave
+  // often withholds it), the always-reliable path is the browser's own
+  // install menu, shown below.
+  const children = [
     el("h3", { text: t("settings.install") }),
     el("p", { class: "settings-desc", text: t("settings.installDesc") }),
-    btn,
+  ];
+
+  if (canInstall()) {
+    children.push(
+      el("button", {
+        class: "btn btn--primary",
+        type: "button",
+        text: t("settings.installBtn"),
+        onclick: async () => {
+          try {
+            const ok = await installApp();
+            if (ok) {
+              playSave();
+              showToast(t("settings.installing"), "success");
+            } else {
+              showToast(t("settings.installCancelled"), "info");
+            }
+            renderSettings(container);
+          } catch (err) {
+            playError();
+            showToast(t("settings.installFailed") + ": " + err.message, "error");
+          }
+        },
+      })
+    );
+  }
+
+  const guideLine = isAndroid() ? t("settings.installGuideAndroid") : t("settings.installGuideDesktop");
+  children.push(
     el("div", { class: "install-guide", role: "note" }, [
       el("p", { class: "install-guide__intro", text: t("settings.installNote") }),
       el("p", { class: "install-guide__step", text: guideLine }),
-    ]),
-  ]);
+    ])
+  );
+
+  return el("div", { class: "settings-section" }, children);
 }
 
 function buildThemeSection(currentTheme, container) {

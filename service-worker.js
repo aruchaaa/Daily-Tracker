@@ -6,12 +6,12 @@
 // pure cache-first strategy, at the cost of a network round-trip on every
 // online load (irrelevant here since there's no real data to wait on).
 
-const CACHE_NAME = "daily-tracker-v45";
+const CACHE_NAME = "daily-tracker-v46";
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./manifest.json",
+  "./manifest.webmanifest",
   "./css/main.css",
   "./css/components.css",
   "./css/animations.css",

@@ -54,17 +54,19 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v45`). `screenSettings.js` also
-  carries a display-only `APP_VERSION` constant ("vN") that should be bumped
-  in step with the cache name.
+  reference in `README.md` (currently `v46`). The manifest is
+  `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
+  keeps the service worker and manifest free of CDN caching so updates and
+  installability checks always see the newest files.
 
 ## Architecture
 
 ```
 daily-tracker/
 ├── index.html            single-page shell + bottom nav (one module entry: js/app.js)
-├── manifest.json         PWA metadata (name, icons, #161227 colors, standalone)
+├── manifest.webmanifest PWA metadata (name, icons, #161227 colors, standalone)
 ├── service-worker.js     network-first, cache-fallback; precache list + self-update
+├── vercel.json           PWA headers: SW + manifest never CDN-cached
 ├── css/
 │   ├── main.css          tokens, themes, layout, print, skip-link, shadows
 │   ├── components.css    UI parts (BEM-ish, all colors via CSS variables)
@@ -134,7 +136,7 @@ daily-tracker/
         ├── backupManager.js  versioned JSON export/import (replace/merge)/clear
         └── csvExport.js      pure buildMonthCSV + exportMonthCSV (UTF-8 BOM)
 └── test/                  Node regression harness (lives in repo so Temp
-                          cleanups can't wipe it): verify5.mjs (70 asserts),
+                          cleanups can't wipe it): verify5.mjs (72 asserts),
                           linkall.mjs (35 ok + app.js), package.json
                           installs fake-indexeddb
 ```
@@ -585,10 +587,12 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **70** (hard-tier seeded 503-day range +
+- Current assertion count is **72** (hard-tier seeded 503-day range +
   backfilled 40-day tail, install-prompt section, the 12-assertion
-  day-record block added at SW v36, and the 2-assertion badge-i18n
-  regression block added at SW v44). Don't assert exact intra-group row
+  day-record block added at SW v36, the 2-assertion badge-i18n
+  regression block added at SW v44, and the 2-assertion install-gating
+  rework at SW v46: the Install button is hidden until a `beforeinstallprompt`
+  event is held, then appears responsive). Don't assert exact intra-group row
   order in the day-record tests: sortOrder uses `Date.now()` so rapid
   `createTask` calls can tie, and `getAllTasks` tie-breaks by uuid key
   order — assert membership/sets and rely on the deterministic groups
@@ -889,3 +893,43 @@ app does. No DB/schema/backup change; JS + i18n + CSS only.
 - Verified: `node --check` on edited JS; verify5 ALL VERIFIED (70);
   linkall "35 ok, 1 fail" (app.js DOM-only); CSS brace balance;
   i18n scan shows the new `about.*` keys all used. CACHE_NAME → v45.
+
+### Install that actually installs (SW v46)
+User report: still can't install; the reference project (`ai-companion`,
+deployed at `missmybae.vercel.app`) installs "very well". Diagnosis: the
+in-app Install button depended on `beforeinstallprompt`, which Chromium
+(especially Brave) often withholds or silently no-ops, so the always-visible
+button produced dead taps. The reference installs via the **browser's own
+install affordance** — it only ever shows its button when the browser has
+actually handed it a `beforeinstallprompt` event. Aligned Daily Tracker to
+that proven pattern. No DB/schema/backup change.
+- **Install UI reworked** (`ui/screenSettings.js` `buildInstallSection`):
+  the Install button now renders *only* when `canInstall()` is true (a
+  `beforeinstallprompt` event is actually held); the dead-button branch and
+  its "not ready yet" toast are gone. The `.install-guide` panel remains
+  always-visible for installed-eligible users and is now the primary path:
+  desktop Chrome/Brave/Edge → browser menu (⋮) → Save and Share → "Install
+  page as app…"; Android → ⋮ → Install app. iOS keeps its no-button
+  Share → Add to Home Screen panel. `onInstallPromptReady` (app.js) still
+  re-renders Settings live, so the button pops in the moment the browser
+  offers the event.
+- **Manifest renamed `manifest.json` → `manifest.webmanifest`**: Vercel
+  serves `.webmanifest` with Content-Type `application/manifest+json`
+  (verified live), matching the working reference and removing any MIME
+  doubt from installability checks. References updated: `index.html` link
+  href, SW `APP_SHELL`, README, AGENTS. Old file deleted.
+- **`vercel.json` added** (new file): `Cache-Control: no-cache, no-store,
+  must-revalidate` on `/service-worker.js` and `no-cache, must-revalidate`
+  on `/manifest.webmanifest` — the CDN can no longer serve a stale SW or
+  manifest, so update + installability checks always see the newest files.
+- **About section tidied** (user request): the "Version" row (and its
+  `about.version` i18n keys + the `APP_VERSION` display constant) removed
+  so the Settings About panel stays clean; dead `settings.installNotReady`
+  key deleted; `installDesc`/`installNote` reworded to match the
+  button-gated UI.
+- Verified: `node --check` all JS; verify5 ALL VERIFIED (72); linkall
+  "35 ok, 1 fail" (app.js DOM-only); CSS untouched (brace balance
+  unchanged); grep confirms the tokens `manifest.json`/`installNotReady`/
+  `APP_VERSION`/`about.version` survive only in changelog/history prose,
+  never in code.
+  CACHE_NAME → v46.

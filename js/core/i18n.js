@@ -217,13 +217,11 @@ const translations = {
 
     "settings.title": "Settings & Backup",
     "settings.install": "Install",
-    "settings.installDesc": "Add Daily Tracker to your home screen or taskbar for a full-screen, offline app experience. The button becomes active when your browser makes the app installable.",
+    "settings.installDesc": "Add Daily Tracker to your home screen or taskbar for a full-screen, offline app experience.",
     "settings.installBtn": "Install App",
     "settings.installIOS": "Install isn't available directly on iOS \u2014 use Share \u2192 Add to Home Screen.",
 
-    "settings.installNotReady": "Not ready yet \u2014 try again in a moment.",
-
-    "settings.installNote": "If the button above doesn't finish the install, install from your browser's own menu instead \u2014 that always works:",
+    "settings.installNote": "Install from your browser's own menu \u2014 that always works:",
 
     "settings.installGuideDesktop": "Browser menu (\u22EE) \u2192 Save and Share \u2192 Install page as app\u2026",
 
@@ -306,7 +304,6 @@ const translations = {
     "about.dataTitle": "Your data stays here",
     "about.dataDesc": "Everything is stored in IndexedDB on this device only \u2014 there is no server or cloud. Clearing this site's data erases your progress, so keep a backup (Settings \u2192 export or copy the JSON).",
     "about.tech": "Built with vanilla JavaScript and standard browser APIs \u2014 no frameworks, no tracking, no third-party requests.",
-    "about.version": "Version",
 
     "common.lvl": "LVL",
     "common.viewProfile": "View character profile",
@@ -533,13 +530,11 @@ const translations = {
 
     "settings.title": "Pengaturan & Backup",
     "settings.install": "Install",
-    "settings.installDesc": "Pasang Daily Tracker ke layar beranda biar bisa full-screen dan offline. Tombol ini aktif kalau browser mendukung.",
+    "settings.installDesc": "Pasang Daily Tracker ke layar beranda biar bisa full-screen dan offline.",
     "settings.installBtn": "Install App",
     "settings.installIOS": "Nggak bisa install langsung di iOS \u2014 pakai Share \u2192 Tambahkan ke Layar Beranda.",
 
-    "settings.installNotReady": "Belum siap \u2014 coba lagi sebentar.",
-
-    "settings.installNote": "Kalau tombol di atas nggak jadi, install lewat menu browser aja \u2014 pasti jalan:",
+    "settings.installNote": "Install lewat menu browser sendiri aja \u2014 pasti jalan:",
 
     "settings.installGuideDesktop": "Menu browser (\u22EE) \u2192 Save and Share \u2192 Install page as app\u2026",
 
@@ -622,7 +617,6 @@ const translations = {
     "about.dataTitle": "Data kamu aman di sini",
     "about.dataDesc": "Semua data disimpan di IndexedDB di device ini aja \u2014 nggak ada server atau cloud. Kalau data situs dibersihkan, progres ikut hilang, jadi rajin-rajin backup (Pengaturan \u2192 export atau salin JSON).",
     "about.tech": "Dibuat dengan JavaScript vanilla + API standar browser \u2014 nggak ada framework, nggak ada pelacakan, nggak ada request pihak ketiga.",
-    "about.version": "Versi",
 
     "common.lvl": "LVL",
     "common.viewProfile": "Lihat profil karakter",

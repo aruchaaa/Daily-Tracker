@@ -45,7 +45,15 @@ globalThis.document = {
   removeEventListener() {},
   querySelector: () => null,
 };
-globalThis.window = { print() {} };
+globalThis.window = {
+  print() {},
+  // Property must exist so installPrompt's `"beforeinstallprompt" in window`
+  // guard passes; the value itself is a placeholder.
+  beforeinstallprompt: undefined,
+  _handlers: {},
+  addEventListener(type, fn) { this._handlers[type] = fn; },
+  dispatch(type, evt) { if (this._handlers[type]) this._handlers[type](evt); },
+};
 Object.defineProperty(globalThis, "navigator", { value: {}, configurable: true });
 globalThis.getComputedStyle = () => ({ getPropertyValue: () => "" });
 globalThis.requestAnimationFrame = (fn) => fn();
@@ -269,12 +277,26 @@ assert(stillLocked, "10K EXP / level 20 stay locked at ~5K EXP");
 
 // ---- Install prompt ---------------------------------------------------------
 assert(typeof installPrompt.canInstall === "function" && typeof installPrompt.installApp === "function", "installPrompt module exports");
+// The Node harness gets no `beforeinstallprompt` event, so the app must NOT
+// render a dead Install button — it shows the native browser-guide path, and
+// only offers the button once the browser actually hands us an event.
 c = new FakeNode("div");
 await screenSettings.renderSettings(c);
-assert(Boolean(findByText(c, "Install App")), "Settings shows Install App button");
-const installBtn = findByText(c, "Install App");
-assert(installBtn && installBtn.disabled !== true, "Install button is never disabled (always responds)");
+assert(!findByText(c, "Install App"), "Settings hides Install App until the browser offers it");
+assert(Boolean(findNode(c, "install-guide")), "Settings shows the native install guide");
 assert(Boolean(findNode(c, "settings-section")), "Settings sections render");
+// Fake a `beforeinstallprompt` event so the button gates in correctly.
+installPrompt.captureInstallPrompt();
+window.dispatch("beforeinstallprompt", {
+  preventDefault() {},
+  prompt() { return Promise.resolve(); },
+  userChoice: Promise.resolve({ outcome: "accepted" }),
+});
+c = new FakeNode("div");
+await screenSettings.renderSettings(c);
+assert(Boolean(findByText(c, "Install App")), "Install App button appears once beforeinstallprompt is held");
+const installBtn = findByText(c, "Install App");
+assert(installBtn && installBtn.disabled !== true, "Install App button is responsive when shown");
 
 // ---- History day record: every task of the day ------------------------------
 // Witness day 2026-06-10: BEFORE the July 1 hard-tier loop began, so no

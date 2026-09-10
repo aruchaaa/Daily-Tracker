@@ -33,8 +33,9 @@ onto app.netlify.com/drop — no account required.
 ```
 daily-tracker/
 ├── index.html            single-page app shell + bottom nav
-├── manifest.json          PWA install metadata
+├── manifest.webmanifest  PWA install metadata
 ├── service-worker.js       offline caching (network-first, cache fallback)
+├── vercel.json             PWA cache headers (service worker + manifest)
 ├── css/                   main.css = tokens/themes/layout, components.css = UI parts
 ├── js/
 │   ├── app.js              hash router (#/home, #/tasks, #/profile, #/history, #/report, #/settings)
@@ -211,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v45`. The app also auto-reloads itself once when a newer
+`daily-tracker-v46`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,13 +230,24 @@ against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
 
+## What's new (cache v46)
+
+- **Install that actually installs**: the Settings Install button is now
+  rendered *only* when the browser has offered a `beforeinstallprompt`
+  event (the browser's own install menu — address-bar ⤓, ⋮ → Save and
+  Share → "Install page as app…", or Android ⋮ → Install app — always
+  works and is now the primary path, especially on Brave). The manifest
+  was renamed `manifest.json` → `manifest.webmanifest` so it's served as
+  `application/manifest+json`, and a new `vercel.json` forbids the CDN
+  from caching the service worker. The app version row was dropped from
+  the Settings "About this app" section.
+
 ## What's new (cache v45)
 
 - **About this app** (Settings, bottom): a new section explaining what the
   app does — the six screens/functions, a privacy note (everything stays
-  in your browser's IndexedDB, no server or cloud, keep a backup), the
-  zero-dependency tech note, and the current app version. Fully
-  translated (EN + ID).
+  in your browser's IndexedDB, no server or cloud, keep a backup), and the
+  zero-dependency tech note. Fully translated (EN + ID).
 
 ## What's new (cache v44)
 
