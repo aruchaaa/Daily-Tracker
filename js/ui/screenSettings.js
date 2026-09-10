@@ -499,13 +499,12 @@ function buildInstallSection(container) {
   }
 
   const guideLine = isAndroid() ? t("settings.installGuideAndroid") : t("settings.installGuideDesktop");
+  const resetLine = isAndroid() ? t("settings.installResetAndroid") : t("settings.installResetDesktop");
   const guideChildren = [
     el("p", { class: "install-guide__intro", text: t("settings.installNote") }),
     el("p", { class: "install-guide__step", text: guideLine }),
+    el("p", { class: "install-guide__step", text: resetLine }),
   ];
-  if (!isAndroid()) {
-    guideChildren.push(el("p", { class: "install-guide__step", text: t("settings.installExisting") }));
-  }
   children.push(el("div", { class: "install-guide", role: "note" }, guideChildren));
 
   return el("div", { class: "settings-section" }, children);

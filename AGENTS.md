@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v52`). The manifest is
+  reference in `README.md` (currently `v53`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -1154,3 +1154,58 @@ cancelled. Fix (JS + harness + docs only; no DB/schema/CSS/backup change):
     Incognito window? The incognito test discriminates profile residue
     ("installed at some point" flags that survive brave://apps removal)
     from a site-level installability problem.
+
+### Slow installs are never failures (SW v52)
+User report (v51 live): while the browser-menu path always works, the
+in-app Install button shows a failure toast even in a **fresh Incognito
+window** — but the native dialog *does* appear. Diagnosis: the v47
+anti-hang guard raced `prompt().userChoice` against a **4-second** timeout,
+but Windows installs can legitimately take several seconds (antivirus/
+disk); the race fired first and reported "Install wasn't completed" while
+the shortcut was still being created. missmybae has no race at all (it
+`await`s `userChoice` directly), which is why it always answers honestly.
+Fix (JS/i18n/docs only; no DB/schema/CSS/backup change):
+- **`js/ui/installPrompt.js`**: the feedback window is now 10s, and
+  `installApp()` gains a **`"pending"`** outcome ("the dialog is still
+  working") instead of claiming failure on a slow answer. A late
+  acceptance still flips the UI to installed: a late-resolve listener
+  (bound **only** on the timed-out path, so the normal accepted path keeps
+  its prior `appinstalled`-driven behavior — the original unconditional
+  binding broke the harness's later stale-install asserts by setting
+  `vestedInstalled` early) sets `vestedInstalled` + `notifyReady`.
+  Outcomes: `true` accepted, `false` dismissed, `"none"` no event held,
+  `"unsupported"` `prompt()` threw, `"pending"` still working.
+- **`js/ui/screenSettings.js`**: `"pending"` shows a neutral info toast
+  (no error buzz, no guide flash); the guide flashes only for the
+  no-mechanism outcomes.
+- **i18n**: new `settings.installPending` EN + ID.
+- Harness unchanged (still 87 — the `prompt()`-throws→`"unsupported"`
+  assert already covers the only no-timer branch; a deterministic slow-
+  resolution test would need real timers, which the suite deliberately
+  avoids). CACHE_NAME → v52.
+
+### The browser remembers old installs (SW v53)
+User report + earlier findings: even with the ghost `brave://apps` entry
+deleted, the button showed "Your browser didn't allow install prompt" —
+and the user asked for the button to trigger the address-bar install icon.
+Root cause, confirmed from Chromium issue 40550435 and community practice:
+**`beforeinstallprompt` is silently withheld on any origin that was
+*previously installed* on that profile** — `AppBannerSettingsHelper::
+ShouldShowBanner` keys on "installed at some point", not "installed now".
+The address-bar icon and our `prompt()` pull from the *same* internal
+install dialog; pages **cannot** programmatically click the address-bar
+icon (no such API exists), so the only browser-side reset is clearing the
+origin's site data, which flips the flag back and re-fires the event.
+Fix (i18n/UI/docs only; no DB/schema/CSS/backup change):
+- **i18n**: `settings.installUnsupported` reworded from "didn't allow an
+  install prompt" (answer-less) into the concrete fix — "Brave hides the
+  install prompt because it remembers an old install… shield/lock icon in
+  the address bar → Site settings → Clear data → reload — then this button
+  opens the same dialog as the address-bar icon." New `settings.
+  installResetDesktop` / `installResetAndroid` guide steps (EN + ID).
+- **`js/ui/screenSettings.js`**: the general install guide now lists the
+  always-working browser-menu step **plus** the per-platform site-data
+  reset step (desktop: lock/shield icon → Site settings → Clear data;
+  Android: lock icon → Cookies and site data). The `isRelatedInstalled()`
+  panel keeps its own brave://apps clear instructions.
+- Harness unchanged (87). CACHE_NAME → v53.

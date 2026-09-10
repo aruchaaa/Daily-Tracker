@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v52`. The app also auto-reloads itself once when a newer
+`daily-tracker-v53`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,20 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v53)
+
+- **The install button finally explains the real culprit** (Chromium
+  issue 40550435): browsers silently suppress `beforeinstallprompt` on an
+  origin that was *previously installed* — even after the app entry is
+  deleted from brave://apps. That's why the dialog appears intermittently
+  for returning users (Brave "remembers" an old install). The button's
+  no-prompt message and the install guide now spell out the one-time fix
+  in plain steps: shield/lock icon in the address bar → Site settings
+  (or Cookies and site data) → Clear data → reload. After that reset, the
+  Install button re-opens the exact same dialog as the address-bar icon —
+  which the button cannot click itself, because browsers forbid pages from
+  invoking the address-bar install UI directly.
 
 ## What's new (cache v52)
 
