@@ -3,7 +3,7 @@ import * as metaRepo from "../db/metaRepo.js";
 import * as tasksRepo from "../db/tasksRepo.js";
 import * as sleepRepo from "../db/sleepRepo.js";
 import { getLevelProgress, getLevel } from "../core/expEngine.js";
-import { evaluateAchievements } from "../core/achievements.js";
+import { evaluateAchievements, achievementKey } from "../core/achievements.js";
 import { playTick, playUncheck, playSave, playError, playLevelUp } from "../core/sounds.js";
 import { getTodayDateString } from "../utils.js";
 import { el, buildLevelPanel, buildEmptyState, buildProgressRing, formatTimeRange } from "./components.js";
@@ -13,10 +13,6 @@ import { t } from "../core/i18n.js";
 
 const BACKUP_REMINDER_DAYS = 7;
 
-/** Maps "first-blood" -> "firstBlood", etc., for i18n ach.* key lookups. */
-function achKey(a) {
-  return a.id.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-}
 let bannerDismissedThisSession = false;
 
 export async function renderHome(container, { justLeveledUp = false, justCheckedId = null } = {}) {
@@ -198,7 +194,7 @@ function buildCheckboxRow(task, isCompleted, progress, container, justCheckedId)
             const fresh = await evaluateAchievements();
             fresh.forEach((a) => {
               playLevelUp();
-              showToast(t("home.achievementUnlocked", { title: t(`ach.${achKey(a)}`) }), "success");
+              showToast(t("home.achievementUnlocked", { title: t(`ach.${achievementKey(a.id)}`) }), "success");
               confettiBurst();
             });
           } else if (result.action === "removed") {

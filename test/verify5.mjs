@@ -68,6 +68,7 @@ const screenProfile = await import(base + "js/ui/screenProfile.js");
 const screenSettings = await import(base + "js/ui/screenSettings.js");
 const installPrompt = await import(base + "js/ui/installPrompt.js");
 const toast = await import(base + "js/ui/toast.js");
+const i18n = await import(base + "js/core/i18n.js");
 
 let fail = 0;
 const assert = (cond, msg) => { console.log((cond ? "PASS" : "FAIL") + ": " + msg); if (!cond) fail++; };
@@ -217,6 +218,20 @@ const exp1000 = (await achievements.getAchievementState()).find((a) => a.id === 
 assert(exp1000 && exp1000.unlocked && typeof exp1000.at === "string", "getAchievementState exposes unlock date");
 const hardState = await achievements.getAchievementState();
 assert(hardState.length === 20, "badge gallery has 20 achievements");
+
+// Regression for the SW v44 badge-name bug: `achievementKey` must strip the
+// hyphen before digit suffixes too ("streak-7" -> "streak7", not "streak-7"),
+// else t() falls back to the raw key and the gallery/toast show "ach.streak-7".
+const achResolves = (id) => {
+  const k = "ach." + achievements.achievementKey(id);
+  return i18n.t(k) !== k && i18n.t(k + "Desc") !== k + "Desc";
+};
+assert(
+  achResolves("first-blood") && achResolves("streak-7") && achResolves("level-5") &&
+    achResolves("exp-1000") && achResolves("target-streak-30") && achResolves("streak-365"),
+  "all badge ids (incl. numeric suffixes) resolve to real translations, never raw keys"
+);
+assert(i18n.t("ach.streak7") === "On Fire" && i18n.t("ach.level5") === "Rising Star", "digit-suffix badges translate in EN (ach.streak7 / ach.level5)");
 
 // ---- Hard-tier badges ----------------------------------------------------------
 await metaRepo.setDailyTargetExp(10);

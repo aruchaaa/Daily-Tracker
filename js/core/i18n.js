@@ -221,7 +221,13 @@ const translations = {
     "settings.installBtn": "Install App",
     "settings.installIOS": "Install isn't available directly on iOS \u2014 use Share \u2192 Add to Home Screen.",
 
-    "settings.installRefresh": "Preparing the app once\u2026 wait for the reload, then tap Install again.",
+    "settings.installNotReady": "Not ready yet \u2014 try again in a moment.",
+
+    "settings.installNote": "If the button above doesn't finish the install, install from your browser's own menu instead \u2014 that always works:",
+
+    "settings.installGuideDesktop": "Browser menu (\u22EE) \u2192 Save and Share \u2192 Install page as app\u2026",
+
+    "settings.installGuideAndroid": "Browser menu (\u22EE) \u2192 Install app (or Add to Home screen).",
     "settings.installing": "Installing\u2026",
     "settings.installCancelled": "Install was cancelled.",
     "settings.installFailed": "Install failed",
@@ -287,6 +293,20 @@ const translations = {
     "settings.english": "English",
     "settings.indonesian": "Bahasa Indonesia",
     "settings.languageFailed": "Switching language failed",
+
+    "about.title": "About this app",
+    "about.intro": "Daily Tracker is an offline-first daily task tracker with a gamified EXP/level system. It runs entirely in your browser \u2014 no account, no login, and nothing ever leaves this device.",
+    "about.featuresTitle": "What you can do",
+    "about.f1": "Home \u2014 daily checklist with optional schedules and schedule-conflict detection, daily EXP target, and a sleep log.",
+    "about.f2": "Tasks \u2014 add, edit, delete, duplicate, and reorder tasks; per-task notes and reminders.",
+    "about.f3": "Profile \u2014 level, EXP and sleep trends, lifetime stats, a shareable character card, and 20 achievement badges.",
+    "about.f4": "History \u2014 a calendar of every past day, showing what was and wasn't done.",
+    "about.f5": "Report \u2014 monthly report with a grade, year-at-a-glance, and CSV / PDF export.",
+    "about.f6": "Settings \u2014 themes, custom accent, sounds, reminders, language, and JSON backup (export / import / merge).",
+    "about.dataTitle": "Your data stays here",
+    "about.dataDesc": "Everything is stored in IndexedDB on this device only \u2014 there is no server or cloud. Clearing this site's data erases your progress, so keep a backup (Settings \u2192 export or copy the JSON).",
+    "about.tech": "Built with vanilla JavaScript and standard browser APIs \u2014 no frameworks, no tracking, no third-party requests.",
+    "about.version": "Version",
 
     "common.lvl": "LVL",
     "common.viewProfile": "View character profile",
@@ -517,7 +537,13 @@ const translations = {
     "settings.installBtn": "Install App",
     "settings.installIOS": "Nggak bisa install langsung di iOS \u2014 pakai Share \u2192 Tambahkan ke Layar Beranda.",
 
-    "settings.installRefresh": "Nyiapin app sekali\u2026 tunggu reload-nya, terus ketuk Install lagi.",
+    "settings.installNotReady": "Belum siap \u2014 coba lagi sebentar.",
+
+    "settings.installNote": "Kalau tombol di atas nggak jadi, install lewat menu browser aja \u2014 pasti jalan:",
+
+    "settings.installGuideDesktop": "Menu browser (\u22EE) \u2192 Save and Share \u2192 Install page as app\u2026",
+
+    "settings.installGuideAndroid": "Menu browser (\u22EE) \u2192 Install app (atau Add to Home screen).",
     "settings.installing": "Installing\u2026",
     "settings.installCancelled": "Install dibatalkan.",
     "settings.installFailed": "Gagal install",
@@ -583,6 +609,20 @@ const translations = {
     "settings.english": "English",
     "settings.indonesian": "Bahasa Indonesia",
     "settings.languageFailed": "Gagal ganti bahasa",
+
+    "about.title": "Tentang app ini",
+    "about.intro": "Daily Tracker itu pencatat tugas harian offline-first dengan sistem EXP/level yang seru. Semua jalan di browser \u2014 nggak ada akun, nggak ada login, dan data nggak pernah keluar dari device kamu.",
+    "about.featuresTitle": "Yang bisa kamu lakukan",
+    "about.f1": "Home \u2014 checklist harian dengan jadwal opsional + deteksi bentrok jadwal, target EXP harian, dan catatan tidur.",
+    "about.f2": "Tugas \u2014 tambah, edit, hapus, duplikat, dan urutin tugas; catatan per tugas dan pengingat.",
+    "about.f3": "Profil \u2014 level, tren EXP & tidur, statistik seumur hidup, kartu karakter yang bisa dibagikan, dan 20 lencana pencapaian.",
+    "about.f4": "Riwayat \u2014 kalender semua hari kemarin, ngeliat mana yang selesai dan mana yang nggak.",
+    "about.f5": "Laporan \u2014 laporan bulanan dengan nilai, ringkasan tahun, dan export CSV / PDF.",
+    "about.f6": "Pengaturan \u2014 tema, aksen custom, suara, pengingat, bahasa, dan backup JSON (export / import / gabung).",
+    "about.dataTitle": "Data kamu aman di sini",
+    "about.dataDesc": "Semua data disimpan di IndexedDB di device ini aja \u2014 nggak ada server atau cloud. Kalau data situs dibersihkan, progres ikut hilang, jadi rajin-rajin backup (Pengaturan \u2192 export atau salin JSON).",
+    "about.tech": "Dibuat dengan JavaScript vanilla + API standar browser \u2014 nggak ada framework, nggak ada pelacakan, nggak ada request pihak ketiga.",
+    "about.version": "Versi",
 
     "common.lvl": "LVL",
     "common.viewProfile": "Lihat profil karakter",

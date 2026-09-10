@@ -5,8 +5,11 @@ import * as metaRepo from "../db/metaRepo.js";
 import { playSave, playError, playToggle, playDelete, playUndo } from "../core/sounds.js";
 import { el } from "./components.js";
 import { showConfirmDialog, showToast } from "./toast.js";
-import { canInstall, installApp, isInstalled, isIOS } from "./installPrompt.js";
+import { canInstall, installApp, isInstalled, isIOS, isAndroid } from "./installPrompt.js";
 import { t, setLang as setI18nLang, getLang } from "../core/i18n.js";
+
+// Display label only — bump together with service-worker.js CACHE_NAME.
+const APP_VERSION = "v45";
 
 export async function renderSettings(container) {
   container.innerHTML = "";
@@ -192,8 +195,32 @@ export async function renderSettings(container) {
       }),
       resetBtn,
     ]),
+    buildAboutSection(),
     statusMsg
   );
+}
+
+function buildAboutSection() {
+  const features = [t("about.f1"), t("about.f2"), t("about.f3"), t("about.f4"), t("about.f5"), t("about.f6")];
+
+  return el("div", { class: "settings-section" }, [
+    el("h3", { text: t("about.title") }),
+    el("p", { class: "settings-desc", text: t("about.intro") }),
+    el("div", { class: "about-list" }, features.map((text) => el("div", { class: "about-list__item", text }))),
+    el("div", { class: "about-list about-list--block" }, [
+      el("div", { class: "about-list__block" }, [
+        el("span", { class: "about-list__label", text: t("about.dataTitle") }),
+        el("span", { class: "about-list__text", text: t("about.dataDesc") }),
+      ]),
+      el("div", { class: "about-list__block" }, [
+        el("span", { class: "about-list__label", text: t("about.tech") }),
+      ]),
+      el("div", { class: "about-list__block" }, [
+        el("span", { class: "about-list__label", text: t("about.version") }),
+        el("span", { class: "about-list__text", text: APP_VERSION }),
+      ]),
+    ]),
+  ]);
 }
 
 function buildLanguageSection(container) {
@@ -384,17 +411,11 @@ function buildInstallSection(container) {
     text: t("settings.installBtn"),
     onclick: async () => {
       if (!canInstall()) {
+        // The browser hasn't handed us a `beforeinstallprompt` yet (or
+        // never will, on iOS). The guide panel below says the rest — here
+        // just a short heads-up so the tap isn't silent.
         playError();
-        // No stashed `beforeinstallprompt` yet. The reason differs by
-        // platform, so say something actionable instead of a dead end:
-        //   iOS      — programmatic install doesn't exist; handout the
-        //              Share → Add to Home Screen path.
-        //   Chromium — the worker may not have taken control yet (first
-        //              visit) or the browser is still gauging engagement;
-        //              the first-visit reload in app.js usually fixes it,
-        //              so tell the user to tap again.
-        const msg = isIOS() ? t("settings.installIOS") : t("settings.installRefresh");
-        showToast(msg, "info", 5000);
+        showToast(isIOS() ? t("settings.installIOS") : t("settings.installNotReady"), "info", 4200);
         return;
       }
       try {
@@ -413,13 +434,32 @@ function buildInstallSection(container) {
     },
   });
 
+  // iOS has no programmatic install — only the Share → Add to Home Screen
+  // path exists, so show that instead of a dead button.
+  if (isIOS()) {
+    return el("div", { class: "settings-section" }, [
+      el("h3", { text: t("settings.install") }),
+      el("p", { class: "settings-desc", text: t("settings.installDesc") }),
+      el("div", { class: "install-guide", role: "note" }, [
+        el("p", { class: "install-guide__intro", text: t("settings.installIOS") }),
+      ]),
+    ]);
+  }
+
+  // Chromium engines (Chrome/Brave/Edge). The in-app button needs the
+  // browser to hand us `beforeinstallprompt`, which it doesn't always do —
+  // so pair it with an always-correct fallback: the browser's own install
+  // affordance, which works whenever the app is installable.
+  const guideLine = isAndroid() ? t("settings.installGuideAndroid") : t("settings.installGuideDesktop");
+
   return el("div", { class: "settings-section" }, [
     el("h3", { text: t("settings.install") }),
-    el("p", {
-      class: "settings-desc",
-      text: t("settings.installDesc"),
-    }),
+    el("p", { class: "settings-desc", text: t("settings.installDesc") }),
     btn,
+    el("div", { class: "install-guide", role: "note" }, [
+      el("p", { class: "install-guide__intro", text: t("settings.installNote") }),
+      el("p", { class: "install-guide__step", text: guideLine }),
+    ]),
   ]);
 }
 

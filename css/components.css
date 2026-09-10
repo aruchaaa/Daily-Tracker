@@ -1047,6 +1047,55 @@
   margin-bottom: 12px;
 }
 
+.about-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.about-list--block {
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.about-list__item {
+  font-size: 13px;
+  color: var(--ink-dim);
+  line-height: 1.45;
+  padding-left: 14px;
+  position: relative;
+}
+
+.about-list__item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
+.about-list__block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.about-list__label {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.about-list__text {
+  color: var(--ink-dim);
+  line-height: 1.45;
+}
+
 .settings-section .input {
   width: 100%;
   margin-bottom: 10px;
@@ -1056,6 +1105,27 @@
   font-size: 13px;
   color: var(--mint);
   min-height: 18px;
+}
+
+.install-guide {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px dashed var(--panel-border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-raised) 70%, transparent);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-dim);
+}
+
+.install-guide__intro {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.install-guide__step {
+  margin: 0;
 }
 
 .theme-option-list {

@@ -54,7 +54,9 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v42`).
+  reference in `README.md` (currently `v45`). `screenSettings.js` also
+  carries a display-only `APP_VERSION` constant ("vN") that should be bumped
+  in step with the cache name.
 
 ## Architecture
 
@@ -125,14 +127,14 @@ daily-tracker/
     │   ├── screenReport.js     monthly report, year grid, CSV, PDF
     │   ├── screenSettings.js   install, theme/accent, toggles, backup, danger zone
     │   ├── installPrompt.js    beforeinstallprompt stash + installApp + isInstalled/
-    │   │                       isIOS helpers + onInstallPromptReady listeners
+    │   │                       isIOS/isAndroid helpers + onInstallPromptReady listeners
     │   └── toast.js           showToast (stack ≤4, optional action) +
     │                          showConfirmDialog (optional type-to-confirm)
     └── backup/
         ├── backupManager.js  versioned JSON export/import (replace/merge)/clear
         └── csvExport.js      pure buildMonthCSV + exportMonthCSV (UTF-8 BOM)
 └── test/                  Node regression harness (lives in repo so Temp
-                          cleanups can't wipe it): verify5.mjs (68 asserts),
+                          cleanups can't wipe it): verify5.mjs (70 asserts),
                           linkall.mjs (35 ok + app.js), package.json
                           installs fake-indexeddb
 ```
@@ -574,7 +576,7 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   the repo and can never point at a stale copy again). `linkall.mjs`
   covers **every** versioned JS module (35) → "34 ok" + app.js instead of
   the old curated 29-module list. The suite passes "ALL VERIFIED"
-  (68 assertions) from `cd daily-tracker/test`.
+  (70 assertions) from `cd daily-tracker/test`.
 
 ### Testing notes
 - `verify5.mjs` assertions are deliberately time-zone- and clock-aware:
@@ -583,9 +585,10 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **68** (hard-tier seeded 503-day range +
-  backfilled 40-day tail, install-prompt section, and the 12-assertion
-  day-record block added at SW v36). Don't assert exact intra-group row
+- Current assertion count is **70** (hard-tier seeded 503-day range +
+  backfilled 40-day tail, install-prompt section, the 12-assertion
+  day-record block added at SW v36, and the 2-assertion badge-i18n
+  regression block added at SW v44). Don't assert exact intra-group row
   order in the day-record tests: sortOrder uses `Date.now()` so rapid
   `createTask` calls can tie, and `getAllTasks` tie-breaks by uuid key
   order — assert membership/sets and rely on the deterministic groups
@@ -805,3 +808,84 @@ visit. Fixes (no DB/CSS/schema change):
   install assertions only check the button renders). Verified: verify5
   ALL VERIFIED (68), linkall "35 ok, 1 fail", `node --check` on edited
   modules. CACHE_NAME → v42.
+
+### Install rebuilt as a guide (SW v43)
+User report: the native dialog now appears when tapping the button, but
+installing "does nothing" in Brave (Brave's `beforeinstallprompt` dialog
+can silently no-op), and the v42 "wait for the reload" fallback never
+fires for returning visitors. Lesson: an in-page install button can never
+force the browser — `prompt()` only works if Chrome-family actually sends
+`beforeinstallprompt`, and Brave frequently doesn't (or the dialog
+completes nothing). Rather than chase the browser, the app now guides.
+- **First-visit auto-reload removed** (`js/app.js`): the v42
+  sessionStorage-guarded reload block is gone — it couldn't conjure a
+  `beforeinstallprompt` and only produced a confusing flash/reload story.
+  `registerServiceWorker` is back to a plain register+catch;
+  `isInstalled`/`isIOS` imports removed from app.js.
+- **Install panel rebuilt** (`js/ui/screenSettings.js`
+  `buildInstallSection`): no longer a lone button. Non-installed, non-iOS
+  users get the Install button PLUS an always-visible `.install-guide`
+  note: "If the button doesn't finish the install, use your browser's own
+  menu — that always works:" with a per-platform line (desktop: "⋮ → Save
+  and Share → Install page as app…", Android: "⋮ → Install app"). iOS
+  users get only the Share → Add to Home Screen instructions (no dead
+  button). Click with no stashed event → short toast
+  (`settings.installNotReady`) instead of the misleading reload message.
+- **`isAndroid()`** added to `installPrompt.js` alongside `isIOS()`;
+  detection is UA-based, try/catch-wrapped, fails safe to false (Node
+  harness has neither hit).
+- **i18n**: `settings.installRefresh` (v42, now dead) replaced by
+  `settings.installNotReady` + `settings.installNote` +
+  `settings.installGuideDesktop` + `settings.installGuideAndroid` (EN +
+  ID). `settings.installIOS` kept.
+- **CSS**: `.install-guide` / `.install-guide__intro` /
+  `.install-guide__step` added in components.css (dashed panel, uses
+  `--panel-border`/`--bg-raised`/`--radius-md` tokens; no motion).
+- Harness assertions untouched and still green: "Settings shows Install
+  App button" (EN `settings.installBtn` "Install App" still rendered for
+  non-installed users) and "Install button is never disabled". Verified:
+  verify5 ALL VERIFIED (68), linkall "35 ok, 1 fail", `node --check` on
+  edited modules, CSS brace balance. CACHE_NAME → v43.
+
+### Achievement name i18n fix (SW v44)
+User report: "achievement names are scrambled — 'ach ach'". Root cause: the
+per-screen `achKey()` helpers only stripped a hyphen before a **lowercase
+letter** (`/-([a-z])/`), and id suffixes like "streak-7"/"exp-1000" use
+numeric suffixes, so `t("ach.streak-7")` fell back to the literal key and
+13 of the 20 badges rendered as "ach.streak-7" in the Profile gallery and
+the Home unlock toast. Fix (JS + harness only, no DB/CSS/schema change):
+- **Single source of truth** (`core/achievements.js`): new exported
+  `achievementKey(id)` maps any badge id to its i18n suffix, including
+  digit suffixes (`/-([a-z0-9])/gi`, so "streak-7" → "streak7"). The
+  duplicated, broken `achKey()` helpers in `screenProfile.js` and
+  `screenHome.js` were deleted; both call sites now use
+  `achievementKey(a.id)`.
+- **Regression harness** (`test/verify5.mjs`): two assertions added after
+  the 20-badge block — `achievementKey` resolves all six shape variations
+  (letter- and digit-suffix ids) to real translations plus "digit-suffix
+  badges translate in EN". Verify5 count 68 → **70**; a similar helper
+  regression now fails loudly instead of shipping.
+- Verified: ach-resolution script shows 0 missing in EN **and** ID for all
+  20 badges; `node --check` all JS; verify5 ALL VERIFIED (70); linkall
+  "35 ok, 1 fail" (app.js DOM-only); CSS braces balanced. CACHE_NAME →
+  v44.
+
+### About this app section (SW v45)
+User request: an "About this app" section in Settings explaining what the
+app does. No DB/schema/backup change; JS + i18n + CSS only.
+- **`buildAboutSection()`** (`ui/screenSettings.js`): a `.settings-section`
+  appended last (under Danger Zone) with an intro, a bulleted feature list
+  covering all six screens, a bordered data/privacy block ("everything
+  stays in IndexedDB on this device — keep a backup"), the zero-dependency
+  tech note, and a Version row driven by a new display-only `APP_VERSION`
+  constant ("v45") that must be bumped in step with the SW cache name.
+- **i18n** (`core/i18n.js`): twelve new `about.*` keys (title, intro,
+  featuresTitle, f1–f6, dataTitle, dataDesc, tech, version) in EN + ID,
+  written in the same casual Indonesian register as the rest of Settings.
+- **CSS** (`css/components.css`): `.about-list`, `.about-list__item`
+  (gold dot bullets), `.about-list--block`, `.about-list__block`,
+  `.about-list__label`, `.about-list__text` — all via existing tokens
+  (`--ink`, `--ink-dim`, `--gold`, `--panel-border`), no motion.
+- Verified: `node --check` on edited JS; verify5 ALL VERIFIED (70);
+  linkall "35 ok, 1 fail" (app.js DOM-only); CSS brace balance;
+  i18n scan shows the new `about.*` keys all used. CACHE_NAME → v45.

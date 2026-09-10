@@ -2,7 +2,7 @@ import * as metaRepo from "../db/metaRepo.js";
 import { getProfileStats } from "../core/profileStats.js";
 import { getRecentDailyExp } from "../core/expTrend.js";
 import { getRecentSleep } from "../core/sleepTrend.js";
-import { getAchievementState } from "../core/achievements.js";
+import { getAchievementState, achievementKey } from "../core/achievements.js";
 import { playSave, playError } from "../core/sounds.js";
 import { t } from "../core/i18n.js";
 import { el, buildLevelPanel, statCard, gradeClass, buildTrendChart } from "./components.js";
@@ -110,8 +110,9 @@ function buildAchievementsSection(state) {
 
   const grid = el("div", { class: "ach-grid" });
   state.forEach((a) => {
-    const title = t(`ach.${achKey(a)}`);
-    const desc = t(`ach.${achKey(a)}Desc`);
+    const key = achievementKey(a.id);
+    const title = t(`ach.${key}`);
+    const desc = t(`ach.${key}Desc`);
     const hint = a.unlocked
       ? a.at
         ? t("profile.unlockedOn", { date: new Date(a.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) })
@@ -145,13 +146,6 @@ function buildAchievementsSection(state) {
     el("div", { class: "ach-counter", text: t("profile.ofAchievements", { n: unlockedCount, total: state.length }) }),
     grid,
   ]);
-}
-
-/** Maps a badge id to its i18n suffix (dashes -> camel, e.g.
- *  "first-blood" -> "firstBlood"). Keep in sync with the DEFINITIONS ids. */
-function achKey(a) {
-  return a.id
-    .replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 }
 
 /** Renders the character card (name, level ring, EXP, month grade, and the

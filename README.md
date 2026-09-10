@@ -211,7 +211,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v42`. The app also auto-reloads itself once when a newer
+`daily-tracker-v45`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,21 +229,47 @@ against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
 
-## What's new (cache v42)
+## What's new (cache v45)
 
-- **Install that finally installs**: on the very first visit the app
-  reloads itself once so the service worker takes control of the page —
-  this is exactly what browsers wait for before allowing an in-app
-  "Install App" click to open the native install dialog. After the reload,
-  Settings → Install App should just work on Chrome/Brave/Edge (Android
-  and desktop).
-- **Smarter install button**: if the native prompt isn't available yet,
-  the button now tells you what to do per platform — on iPhone it explains
-  that you install via Share → Add to Home Screen (iOS has no programmatic
-  install); on Chromium it asks you to tap Install again after the one-time
-  setup reload.
+- **About this app** (Settings, bottom): a new section explaining what the
+  app does — the six screens/functions, a privacy note (everything stays
+  in your browser's IndexedDB, no server or cloud, keep a backup), the
+  zero-dependency tech note, and the current app version. Fully
+  translated (EN + ID).
+
+## What's new (cache v44)
+
+- **Achievement names fixed**: badges whose ids end in a number
+  (`streak-7`, `level-5`, `exp-1000`, `target-streak-30`, …) rendered as
+  their raw i18n keys ("ach.streak-7") in the Profile gallery and the Home
+  unlock toast. The `achievementKey` helper (now a single shared function
+  in `core/achievements.js`) also strips the hyphen before digit suffixes,
+  so all 20 badges show the right title in English and Indonesian. Two
+  regression assertions added to the test harness to keep it from
+  regressing.
+
+## What's new (cache v43)
+
+- **Rebuilt install panel** (Settings): the Install section is no longer a
+  lone button — it's an install guide. The "Install App" button still opens
+  the browser's native dialog whenever the browser cooperates, and directly
+  beneath it the panel shows the always-works fallback: install from your
+  browser's own menu (⋮ → Save and Share → Install page as app on desktop;
+  ⋮ → Install app on Android). iPhone users see Share → Add to Home Screen
+  instructions instead of a button, since iOS has no programmatic install.
+- **Why it was rebuilt**: an in-page button can only work when the browser
+  hands the page a `beforeinstallprompt` event — the browser decides that,
+  not the app. Browsers (especially Brave) sometimes never send it, or show
+  a dialog that silently completes nothing. The app now always gives you
+  the browser's own install path, which works whenever the app is
+  installable.
 - **Install tip**: use a normal browser window, not a Private/Incognito
   window — those never allow installing the app.
+
+## What's new (cache v42)
+
+- First auto-reload-on-first-visit + platform toasts (superseded by the
+  v43 install guide above).
 
 ## What's new (cache v41)
 

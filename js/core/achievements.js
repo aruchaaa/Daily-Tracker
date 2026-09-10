@@ -118,6 +118,15 @@ function progressOf(def, s) {
   }
 }
 
+/** Maps a badge id to its i18n ach.* suffix, e.g. "first-blood" ->
+ *  "firstBlood" and "streak-7" -> "streak7". Single source of truth for
+ *  both the Profile gallery and the Home unlock toast (the old per-screen
+ *  copies only handled letter suffixes, so every numeric badge rendered
+ *  as its raw key, e.g. "ach.streak-7"). */
+export function achievementKey(id) {
+  return String(id).replace(/-([a-z0-9])/gi, (_, c) => c.toUpperCase());
+}
+
 /** Full badge state for the Profile gallery. */
 export async function getAchievementState() {
   const [stats, unlockedEntries] = await Promise.all([computeStats(), metaRepo.getUnlockedAchievements()]);

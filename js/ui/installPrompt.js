@@ -76,6 +76,14 @@ export function isIOS() {
   }
 }
 
+export function isAndroid() {
+  try {
+    return /Android/i.test(navigator.userAgent || "");
+  } catch (err) {
+    return false;
+  }
+}
+
 export async function installApp() {
   if (!deferredPrompt) return false;
   deferredPrompt.prompt();
