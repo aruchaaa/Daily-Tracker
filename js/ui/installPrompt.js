@@ -43,6 +43,18 @@ export function canInstall() {
   return Boolean(deferredPrompt) && !isInstalled();
 }
 
+/** True when the browser supports the native `<install>` element (the
+ *  declarative, trusted PWA install button — Chrome/Edge 148+, no
+ *  `beforeinstallprompt` ceremony required). Rendered in place of our own
+ *  button when available. */
+export function supportsInstallElement() {
+  try {
+    return typeof window !== "undefined" && "HTMLInstallElement" in window;
+  } catch (err) {
+    return false;
+  }
+}
+
 /** True when the app is already installed: either this session saw
  *  `appinstalled`, or it's currently running in installed mode (standalone
  *  window / iOS home-screen). Guards UI that shouldn't offer an install

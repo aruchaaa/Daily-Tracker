@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v47`). The manifest is
+  reference in `README.md` (currently `v48`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -587,16 +587,20 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **77** (hard-tier seeded 503-day range +
+- Current assertion count is **79** (hard-tier seeded 503-day range +
   backfilled 40-day tail, install-prompt section, the 12-assertion
   day-record block added at SW v36, the 2-assertion badge-i18n
   regression block added at SW v44, the 2-assertion install-gating
   rework at SW v46: the Install button is hidden until a `beforeinstallprompt`
-  event is held, then appears responsive, and the 5-assertion install
+  event is held, then appears responsive, the 5-assertion install
   anti-hang block added at SW v47: `installApp` returns true for an
   accepted prompt and clears the event, resolves to `"unsupported"`
   (instead of hanging) when the browser silently swallows `prompt()`, and
-  the button hides again so no dead tap lingers). Don't assert exact intra-group row
+  the button hides again so no dead tap lingers, and the 2-assertion
+  always-pressable-install rework at SW v48: native-install detection
+  exists, the Install button always renders as a pressable control — even
+  with no `beforeinstallprompt` event — and stays pressable after a dropped
+  prompt). Don't assert exact intra-group row
   order in the day-record tests: sortOrder uses `Date.now()` so rapid
   `createTask` calls can tie, and `getAllTasks` tie-breaks by uuid key
   order — assert membership/sets and rely on the deterministic groups
@@ -981,3 +985,41 @@ DB/schema/backup change):
   with the Vercel project `dailytrackerv1` git-connected, so a push
   auto-deploys to `https://levelupdailytracker.vercel.app`.
   CACHE_NAME → v47.
+
+### Always-pressable Install button (SW v48)
+User report: "the install button is just text, not a button that can be
+pressed — MAKE THE BUTTON INSTALL THE PWA". Root cause: SW v47 only
+rendered the Install button when a `beforeinstallprompt` event was held,
+and the user's Brave never fires that event, so the section showed only
+the plain browser-menu guide text — a UX dead end. Fix (JS/CSS/i18n/
+harness only, no DB/schema/backup change):
+- **`js/ui/installPrompt.js`**: new `supportsInstallElement()` —
+  feature-detects the browser-native `<install>` element
+  (`"HTMLInstallElement" in window`, try/catch → false). The declarative
+  install button works without any `beforeinstallprompt` ceremony.
+- **`js/ui/screenSettings.js`**: `buildInstallSection` now ALWAYS renders a
+  pressable install control for non-installed, non-iOS users, in three
+  tiers: (1) the native `<install>` element (class `install-pwa`, `<button>`
+  look) when `supportsInstallElement()`; (2) otherwise our `<button>`,
+  which prompts via `installApp()` when an event is held; (3) if neither a
+  native element nor an event is usable (Brave), the click plays an error
+  buzz, toasts `settings.installUnsupported`, and flashes the guide. The
+  button can never hang (v47 race stays) and is never text-only. Unused
+  `canInstall` import dropped.
+- **i18n**: `settings.installUnsupported` reworded to cover "browser won't
+  allow any prompt" (EN: "Your browser didn't allow an install prompt — use
+  your browser's menu below instead." / ID "Browser kamu nggak ngizinin
+  prompt install — pakai menu browser di bawah ini aja.").
+- **CSS**: `.install-pwa` in components.css (inline-flex, centered,
+  full-width host for the native element).
+- **Harness** (`test/verify5.mjs`): install block reworked — the button
+  must render as a pressable control at first render with no event at all,
+  stay responsive with an event held, survive the accepted and swallowed
+  paths, and STILL render pressable after a dropped prompt. Added
+  `supportsInstallElement` regression (false in Node). Verify5 count 77 →
+  **79**.
+- Verified: `node --check` all JS; verify5 ALL VERIFIED (79); linkall
+  "35 ok, 1 fail" (app.js DOM-only); CSS braces balanced. Due for auto-deploy:
+  `git push` to `aruchaaa/Daily-Tracker` `main` → Vercel
+  `dailytrackerv1` → https://levelupdailytracker.vercel.app.
+  CACHE_NAME → v48.

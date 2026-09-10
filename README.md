@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v47`. The app also auto-reloads itself once when a newer
+`daily-tracker-v48`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,17 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v48)
+
+- **The Install button is always a real button** — never text. The Settings
+  install control now always renders a pressable button for non-installed
+  users: it uses the browser-native `<install>` element where supported
+  (Chrome/Edge 148+, a trusted install button that works without
+  `beforeinstallprompt`), otherwise our own button, which prompts when the
+  browser held out an event and otherwise toasts "use your browser's menu
+  below instead" plus a highlight on the menu steps. No more bare text and
+  no more dead taps.
 
 ## What's new (cache v47)
 

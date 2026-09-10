@@ -1128,6 +1128,13 @@
   margin: 0;
 }
 
+.install-pwa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
 .install-guide--flash {
   animation: install-guide-flash 1.2s ease-out;
 }

@@ -277,15 +277,18 @@ assert(stillLocked, "10K EXP / level 20 stay locked at ~5K EXP");
 
 // ---- Install prompt ---------------------------------------------------------
 assert(typeof installPrompt.canInstall === "function" && typeof installPrompt.installApp === "function", "installPrompt module exports");
-// The Node harness gets no `beforeinstallprompt` event, so the app must NOT
-// render a dead Install button — it shows the native browser-guide path, and
-// only offers the button once the browser actually hands us an event.
+assert(typeof installPrompt.supportsInstallElement === "function" && installPrompt.supportsInstallElement() === false, "installPrompt native-install detection exists (Node has none)");
+// The Install control must ALWAYS render as a pressable button — even when
+// the browser never hands us a `beforeinstallprompt` event (e.g. Brave). A
+// text-only guide would just leave the user with no way forward.
 c = new FakeNode("div");
 await screenSettings.renderSettings(c);
-assert(!findByText(c, "Install App"), "Settings hides Install App until the browser offers it");
+assert(Boolean(findByText(c, "Install App")), "Install App button always renders (never text-only)");
+const preEventBtn = findByText(c, "Install App");
+assert(preEventBtn && preEventBtn.disabled !== true, "Install App button is pressable even before any prompt event");
 assert(Boolean(findNode(c, "install-guide")), "Settings shows the native install guide");
 assert(Boolean(findNode(c, "settings-section")), "Settings sections render");
-// Fake a `beforeinstallprompt` event so the button gates in correctly.
+// Fake a `beforeinstallprompt` event: the button stays present + pressable.
 installPrompt.captureInstallPrompt();
 window.dispatch("beforeinstallprompt", {
   preventDefault() {},
@@ -294,24 +297,18 @@ window.dispatch("beforeinstallprompt", {
 });
 c = new FakeNode("div");
 await screenSettings.renderSettings(c);
-assert(Boolean(findByText(c, "Install App")), "Install App button appears once beforeinstallprompt is held");
-const installBtn = findByText(c, "Install App");
-assert(installBtn && installBtn.disabled !== true, "Install App button is responsive when shown");
+assert(Boolean(findByText(c, "Install App")), "Install App button renders while a prompt event is held");
+const heldBtn = findByText(c, "Install App");
+assert(heldBtn && heldBtn.disabled !== true, "Install App button stays responsive when an event is held");
 // Drive installApp() itself. A normal (Chrome/Edge) prompt that resolves
 // accepted returns true and clears the held event.
-installPrompt.captureInstallPrompt();
-window.dispatch("beforeinstallprompt", {
-  preventDefault() {},
-  prompt() { return Promise.resolve(); },
-  userChoice: Promise.resolve({ outcome: "accepted" }),
-});
 const acceptedResult = await installPrompt.installApp();
 assert(acceptedResult === true, "installApp returns true for an accepted prompt");
 assert(installPrompt.canInstall() === false, "Accepted prompt clears the held event");
 // A browser that hands us the event but then silently swallows prompt()
 // (no usable prompt / never-resolving userChoice — Brave) must NOT hang the
-// button: installApp resolves with "unsupported", drops the event so no dead
-// button lingers, and the UI hides the button again.
+// button: installApp resolves with "unsupported" and drops the event; the
+// button itself stays pressable so the user is never left with bare text.
 installPrompt.captureInstallPrompt();
 window.dispatch("beforeinstallprompt", { preventDefault() {} });
 const silentResult = await installPrompt.installApp();
@@ -319,7 +316,7 @@ assert(silentResult === "unsupported", "installApp resolves instead of hanging w
 assert(installPrompt.canInstall() === false, "Dropped prompt clears the held event — no dead button");
 c = new FakeNode("div");
 await screenSettings.renderSettings(c);
-assert(!findByText(c, "Install App"), "Install App button hides again once the prompt stops responding");
+assert(Boolean(findByText(c, "Install App")), "Install App button stays pressable after a dropped prompt");
 
 // ---- History day record: every task of the day ------------------------------
 // Witness day 2026-06-10: BEFORE the July 1 hard-tier loop began, so no

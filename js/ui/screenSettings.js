@@ -5,7 +5,7 @@ import * as metaRepo from "../db/metaRepo.js";
 import { playSave, playError, playToggle, playDelete, playUndo } from "../core/sounds.js";
 import { el } from "./components.js";
 import { showConfirmDialog, showToast } from "./toast.js";
-import { canInstall, installApp, isInstalled, isIOS, isAndroid } from "./installPrompt.js";
+import { installApp, isInstalled, isIOS, isAndroid, supportsInstallElement } from "./installPrompt.js";
 import { t, setLang as setI18nLang, getLang } from "../core/i18n.js";
 
 export async function renderSettings(container) {
@@ -410,17 +410,20 @@ function buildInstallSection(container) {
     ]);
   }
 
-  // Chromium engines (Chrome/Brave/Edge). The in-app button only works if
-  // the browser has handed us a `beforeinstallprompt` event, so render it
-  // only in that case — never a dead button. When there's no event (Brave
-  // often withholds it), the always-reliable path is the browser's own
-  // install menu, shown below.
+  // Chromium engines (Chrome/Brave/Edge): always render a pressable install
+  // control — never a text-only dead end. The browser-native <install>
+  // element is the most reliable (it works without a `beforeinstallprompt`
+  // event), so use it where supported; otherwise fall back to our own
+  // button, which prompts when the browser held out an event and otherwise
+  // explains the always-working browser-menu path.
   const children = [
     el("h3", { text: t("settings.install") }),
     el("p", { class: "settings-desc", text: t("settings.installDesc") }),
   ];
 
-  if (canInstall()) {
+  if (supportsInstallElement()) {
+    children.push(el("install", { class: "btn btn--primary install-pwa", role: "button" }));
+  } else {
     children.push(
       el("button", {
         class: "btn btn--primary",
@@ -435,13 +438,14 @@ function buildInstallSection(container) {
             } else if (result === false) {
               showToast(t("settings.installCancelled"), "info");
             } else {
-              // The browser swallowed the prompt (Brave) — guide the user to
+              // No usable install mechanism (Brave often has neither an
+              // event nor a native <install> element) — guide the user to
               // the always-working browser-menu path instead of a dead tap.
               playError();
               showToast(t("settings.installUnsupported"), "error");
             }
-            // Re-render drops the button once the held event is gone; then
-            // flash the freshly built guide so the reliable path is obvious.
+            // Re-render rebuilds the section; then flash the freshly built
+            // guide so the reliable path is obvious.
             await renderSettings(container);
             const guide = container.querySelector(".install-guide");
             if (guide) {
