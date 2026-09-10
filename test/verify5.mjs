@@ -317,6 +317,37 @@ assert(installPrompt.canInstall() === false, "Dropped prompt clears the held eve
 c = new FakeNode("div");
 await screenSettings.renderSettings(c);
 assert(Boolean(findByText(c, "Install App")), "Install App button stays pressable after a dropped prompt");
+// Stale-install detection: with no browser installed-app record, detection
+// reports "not installed" and the button keeps rendering.
+assert((await installPrompt.refreshRelatedInstalled()) === false, "getInstalledRelatedApps absent -> not detected (never throws)");
+assert(installPrompt.isRelatedInstalled() === false, "isRelatedInstalled false when the browser has no record");
+// But if the browser DOES list this origin's PWA as installed (a stale
+// entry from an earlier install attempt), the section must drop the button
+// and explain how to clear the browser-side state instead.
+const savedNav = globalThis.navigator;
+globalThis.location = { href: "https://levelupdailytracker.vercel.app/" };
+Object.defineProperty(globalThis, "navigator", {
+  value: {
+    getInstalledRelatedApps: async () => [
+      { platform: "webapp", url: "https://levelupdailytracker.vercel.app/" },
+    ],
+  },
+  configurable: true,
+});
+try {
+  assert((await installPrompt.refreshRelatedInstalled()) === true, "getInstalledRelatedApps lists this origin -> detected as installed");
+  c = new FakeNode("div");
+  await screenSettings.renderSettings(c);
+  assert(!findByText(c, "Install App"), "Install button hidden when a stale install is detected");
+  assert(Boolean(findByText(c, "brave://apps")), "Stale-install panel tells the user to clear brave://apps");
+} finally {
+  Object.defineProperty(globalThis, "navigator", { value: savedNav, configurable: true });
+  delete globalThis.location;
+}
+assert((await installPrompt.refreshRelatedInstalled()) === false, "Detection resets to false when the record is gone");
+c = new FakeNode("div");
+await screenSettings.renderSettings(c);
+assert(Boolean(findByText(c, "Install App")), "Install App button returns after detection resets");
 
 // ---- History day record: every task of the day ------------------------------
 // Witness day 2026-06-10: BEFORE the July 1 hard-tier loop began, so no

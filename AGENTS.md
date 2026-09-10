@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v49`). The manifest is
+  reference in `README.md` (currently `v50`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -587,7 +587,7 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **79** (hard-tier seeded 503-day range +
+- Current assertion count is **86** (hard-tier seeded 503-day range +
   backfilled 40-day tail, install-prompt section, the 12-assertion
   day-record block added at SW v36, the 2-assertion badge-i18n
   regression block added at SW v44, the 2-assertion install-gating
@@ -596,11 +596,15 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   anti-hang block added at SW v47: `installApp` returns true for an
   accepted prompt and clears the event, resolves to `"unsupported"`
   (instead of hanging) when the browser silently swallows `prompt()`, and
-  the button hides again so no dead tap lingers, and the 2-assertion
+  the button hides again so no dead tap lingers, the 2-assertion
   always-pressable-install rework at SW v48: native-install detection
   exists, the Install button always renders as a pressable control — even
   with no `beforeinstallprompt` event — and stays pressable after a dropped
-  prompt). Don't assert exact intra-group row
+  prompt, and the 7-assertion stale-install block added at SW v50:
+  `getInstalledRelatedApps` absence reports not-installed without throwing,
+  a webapp record for this origin drops the Install button and shows the
+  brave://apps clear-instruction panel, and detection resets to false once
+  the record is gone so the button returns). Don't assert exact intra-group row
   order in the day-record tests: sortOrder uses `Date.now()` so rapid
   `createTask` calls can tie, and `getAllTasks` tie-breaks by uuid key
   order — assert membership/sets and rely on the deterministic groups
@@ -1066,3 +1070,51 @@ i18n/ui only; no DB/schema/backup change):
   all JS, verify5 ALL VERIFIED (79) PASS, linkall 35 ok/1 fail, manifest parses
   as JSON, CSS braces balanced. Push to `main` auto-deploys.
   CACHE_NAME → v49.
+
+### Stale-install detection + honest install toasts (SW v50)
+User report: "the install button still shows 'Install was cancelled' — on
+missmybae the button is always there and installs over and over to add the
+desktop shortcut; why not here?" Read of the report: the "was cancelled"
+toast only appears when `beforeinstallprompt` actually fires and
+`prompt()` resolves **dismissed** — so v49's manifest mirror DID restore
+installability, but on the user's Brave the install dialog then declines.
+That pattern — silent decline / instant dismissed — is exactly what
+Chromium does when it believes the origin's PWA is *already installed*
+(seldom visible to the user after a broken earlier attempt). missmybae has
+no such ghost install, which is why it re-installs happily every time.
+Fix (JS/i18n/harness only; no DB/schema/CSS/backup change):
+- **`js/ui/installPrompt.js`**: new `refreshRelatedInstalled()` — a
+  best-effort `navigator.getInstalledRelatedApps()` query that asks the
+  *browser itself* whether it lists a web app for this origin, stored in
+  module state (`relatedInstalled`; try/catch → false). New
+  `isRelatedInstalled()` export. `captureInstallPrompt()` kicks the query
+  off once on boot.
+- **`js/ui/screenSettings.js`**: `buildInstallSection` now short-circuits
+  to a stale-install panel (no button) whenever `isRelatedInstalled()` is
+  true: `settings.installAlreadyDetected` explains the browser believes
+  it's installed + how to clear it (right-click Daily Tracker in
+  brave://apps / chrome://apps → Remove) + the browser-menu guide. The
+  button's click handler branches dismissed/unsupported by
+  `isRelatedInstalled()`: if the browser has a record, the click shows the
+  same detection guidance instead of the confusing "cancelled" text.
+- **i18n**: `settings.installCancelled`/`settings.installing` deleted
+  (dead); replaced by `settings.installNotCompleted` (dismissed, info) and
+  `settings.installAlreadyDetected` (stale-install, error) + success now
+  toasts `settings.installed`. EN + ID.
+- **Harness** (`test/verify5.mjs`): +7 assertions (79 → **86**) — absence
+  of `getInstalledRelatedApps` reports not-installed without throwing; a
+  listed webapp for this origin (stubbed `navigator` + `location`) drops
+  the Install button and shows the brave://apps panel; resetting the
+  record restores the button. Harness navigator/location stubs restored in
+  a `finally` so the later install asserts still see no record.
+- Verified: `node --check` all JS; verify5 ALL VERIFIED (86) PASS; linkall
+  35 ok/1 fail (app.js DOM-only); manifest parses as JSON; CSS untouched.
+  CACHE_NAME → v50.
+  - **Next step with the user**: re-test on Brave in a fresh tab. Expected
+    outcomes: if Brave lists a ghost install, Settings now shows the
+    "browser thinks it's installed" panel → user deletes the entry in
+    brave://apps → reload → the button works and re-installs like
+    missmybae. If Brave lists *no* record yet still declines, the fallback
+    is the always-working browser menu (⋮ → Save and Share → Install page
+    as app…), which creates the desktop shortcut regardless of the
+    install prompt.

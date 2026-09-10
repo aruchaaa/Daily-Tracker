@@ -5,7 +5,7 @@ import * as metaRepo from "../db/metaRepo.js";
 import { playSave, playError, playToggle, playDelete, playUndo } from "../core/sounds.js";
 import { el } from "./components.js";
 import { showConfirmDialog, showToast } from "./toast.js";
-import { installApp, isInstalled, isIOS, isAndroid, supportsInstallElement } from "./installPrompt.js";
+import { installApp, isInstalled, isIOS, isAndroid, isRelatedInstalled, supportsInstallElement } from "./installPrompt.js";
 import { t, setLang as setI18nLang, getLang } from "../core/i18n.js";
 
 export async function renderSettings(container) {
@@ -416,6 +416,23 @@ function buildInstallSection(container) {
   // event), so use it where supported; otherwise fall back to our own
   // button, which prompts when the browser held out an event and otherwise
   // explains the always-working browser-menu path.
+  //
+  // If the browser *itself* reports this origin's app as installed
+  // (getInstalledRelatedApps), prompting is futile — Chromium declines it
+  // and resolves "dismissed" — so guide the user to clear the stale entry
+  // instead of offering a button that can't win.
+  if (isRelatedInstalled()) {
+    return el("div", { class: "settings-section" }, [
+      el("h3", { text: t("settings.install") }),
+      el("p", { class: "settings-desc", text: t("settings.installAlreadyDetected") }),
+      el("div", { class: "install-guide", role: "note" }, [
+        el("p", { class: "install-guide__intro", text: t("settings.installNote") }),
+        el("p", { class: "install-guide__step", text: t("settings.installGuideDesktop") }),
+        el("p", { class: "install-guide__step", text: t("settings.installExisting") }),
+      ]),
+    ]);
+  }
+
   const children = [
     el("h3", { text: t("settings.install") }),
     el("p", { class: "settings-desc", text: t("settings.installDesc") }),
@@ -434,15 +451,25 @@ function buildInstallSection(container) {
             const result = await installApp();
             if (result === true) {
               playSave();
-              showToast(t("settings.installing"), "success");
+              showToast(t("settings.installed"), "success");
             } else if (result === false) {
-              showToast(t("settings.installCancelled"), "info");
+              if (isRelatedInstalled()) {
+                playError();
+                showToast(t("settings.installAlreadyDetected"), "error");
+              } else {
+                showToast(t("settings.installNotCompleted"), "info");
+              }
             } else {
               // No usable install mechanism (Brave often has neither an
               // event nor a native <install> element) — guide the user to
               // the always-working browser-menu path instead of a dead tap.
-              playError();
-              showToast(t("settings.installUnsupported"), "error");
+              if (isRelatedInstalled()) {
+                playError();
+                showToast(t("settings.installAlreadyDetected"), "error");
+              } else {
+                playError();
+                showToast(t("settings.installUnsupported"), "error");
+              }
             }
             // Re-render rebuilds the section; then flash the freshly built
             // guide so the reliable path is obvious.

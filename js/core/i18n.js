@@ -227,8 +227,8 @@ const translations = {
 
     "settings.installGuideAndroid": "Browser menu (\u22EE) \u2192 Install app (or Add to Home screen).",
     "settings.installExisting": "Installed it before and it vanished? Delete the old \u201cDaily Tracker\u201d entry in your browser's app list (brave://apps / chrome://apps) first \u2014 Chromium hides the install option once it thinks the app is already installed.",
-    "settings.installing": "Installing\u2026",
-    "settings.installCancelled": "Install was cancelled.",
+    "settings.installNotCompleted": "Install wasn't completed \u2014 try the button again, or use your browser's menu below.",
+    "settings.installAlreadyDetected": "This browser thinks the app is already installed, so the install dialog declines it. Open brave://apps (or chrome://apps), right-click Daily Tracker \u2192 Remove, then reload and try again.",
     "settings.installFailed": "Install failed",
     "settings.installUnsupported": "Your browser didn't allow an install prompt \u2014 use your browser's menu below instead.",
     "settings.installed": "App installed — you're good to go.",
@@ -542,8 +542,8 @@ const translations = {
 
     "settings.installGuideAndroid": "Menu browser (\u22EE) \u2192 Install app (atau Add to Home screen).",
     "settings.installExisting": "Pernah install terus app-nya ilang? Hapus dulu entri \u201cDaily Tracker\u201d di daftar aplikasi browser (brave://apps / chrome://apps) \u2014 opsi install nggak bakal muncul kalau browser ngira app-nya udah keinstall.",
-    "settings.installing": "Installing\u2026",
-    "settings.installCancelled": "Install dibatalkan.",
+    "settings.installNotCompleted": "Install-nya belum kelar \u2014 coba lagi tombolnya, atau pakai menu browser di bawah.",
+    "settings.installAlreadyDetected": "Browser mikir app-nya udah keinstall, makanya dialog install nolak. Buka brave://apps (atau chrome://apps), klik kanan Daily Tracker \u2192 Remove, reload, terus coba lagi.",
     "settings.installFailed": "Gagal install",
     "settings.installUnsupported": "Browser kamu nggak ngizinin prompt install \u2014 pakai menu browser di bawah ini aja.",
     "settings.installed": "App udah keinstall — gas pol.",

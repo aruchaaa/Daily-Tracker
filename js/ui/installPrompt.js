@@ -5,6 +5,13 @@
  *  memory for the lifetime of the page. */
 let deferredPrompt = null;
 let vestedInstalled = false;
+/** Does the *browser* believe this origin's PWA is already installed?
+ *  Filled by `refreshRelatedInstalled()`. null = not queried yet.
+ *  Chromium suppresses `beforeinstallprompt` (and its install dialog can
+ *  silently answer "dismissed") for origins it thinks are already
+ *  installed — e.g. after an earlier install attempt that left state
+ *  behind. */
+let relatedInstalled = null;
 const readyListeners = new Set();
 
 /** Register a callback fired whenever the install prompt becomes (or stops
@@ -37,6 +44,32 @@ export function captureInstallPrompt() {
     deferredPrompt = null;
     notifyReady();
   });
+  void refreshRelatedInstalled();
+}
+
+/** Best-effort query of the browser's installed-app record
+ *  (`navigator.getInstalledRelatedApps`): does it list a web app for this
+ *  origin? Falls back to false (unknown) in any odd environment. */
+export async function refreshRelatedInstalled() {
+  try {
+    const apps = await navigator.getInstalledRelatedApps();
+    const origin = new URL(location.href).origin;
+    relatedInstalled = (apps || []).some(
+      (a) => a && a.platform === "webapp" && a.url && new URL(a.url, origin).origin === origin
+    );
+  } catch (err) {
+    relatedInstalled = false;
+  }
+  notifyReady();
+  return relatedInstalled;
+}
+
+/** True when the browser itself reports this origin's PWA as installed
+ *  (via `getInstalledRelatedApps`), even if this session never saw
+ *  `appinstalled` — a stale install can block future installs by making
+ *  Chromium silently decline the prompt. */
+export function isRelatedInstalled() {
+  return relatedInstalled === true;
 }
 
 export function canInstall() {

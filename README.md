@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v49`. The app also auto-reloads itself once when a newer
+`daily-tracker-v50`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,24 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v50)
+
+- **Stale-install detection**: the Settings install section now queries the
+  browser's installed-app record (`navigator.getInstalledRelatedApps`) on
+  load. If the browser thinks "Daily Tracker" is already installed — e.g.
+  from an earlier attempt where the dialog appeared but no shortcut ever
+  showed up — the section replaces the install button with a clear
+  instruction to delete the stale entry in `brave://apps` /
+  `chrome://apps` and retry. Chromium silently declines installs for
+  origins it believes are already installed (resolving the prompt as
+  "dismissed"), so the confusing "Install was cancelled" message is now
+  replaced by an accurate "this browser thinks the app is already
+  installed" guidance when that's the real cause.
+- **Honest outcome toasts**: success shows "App installed" instead of
+  "Installing…", and a user- or browser-dismissed dialog now says "Install
+  wasn't completed — try again, or use your browser's menu below." instead
+  of blaming the user's "cancel".
 
 ## What's new (cache v49)
 
