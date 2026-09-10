@@ -286,6 +286,7 @@ await screenSettings.renderSettings(c);
 assert(Boolean(findByText(c, "Install App")), "Install App button always renders (never text-only)");
 const preEventBtn = findByText(c, "Install App");
 assert(preEventBtn && preEventBtn.disabled !== true, "Install App button is pressable even before any prompt event");
+assert((await installPrompt.installApp()) === "none", "installApp with no event held resolves to none (never a misleading dismissed/menu dead-end)");
 assert(Boolean(findNode(c, "install-guide")), "Settings shows the native install guide");
 assert(Boolean(findNode(c, "settings-section")), "Settings sections render");
 // Fake a `beforeinstallprompt` event: the button stays present + pressable.

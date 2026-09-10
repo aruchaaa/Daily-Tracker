@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v50`). The manifest is
+  reference in `README.md` (currently `v51`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -587,7 +587,7 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **86** (hard-tier seeded 503-day range +
+- Current assertion count is **87** (hard-tier seeded 503-day range +
   backfilled 40-day tail, install-prompt section, the 12-assertion
   day-record block added at SW v36, the 2-assertion badge-i18n
   regression block added at SW v44, the 2-assertion install-gating
@@ -600,11 +600,14 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   always-pressable-install rework at SW v48: native-install detection
   exists, the Install button always renders as a pressable control — even
   with no `beforeinstallprompt` event — and stays pressable after a dropped
-  prompt, and the 7-assertion stale-install block added at SW v50:
+  prompt, the 7-assertion stale-install block added at SW v50:
   `getInstalledRelatedApps` absence reports not-installed without throwing,
   a webapp record for this origin drops the Install button and shows the
   brave://apps clear-instruction panel, and detection resets to false once
-  the record is gone so the button returns). Don't assert exact intra-group row
+  the record is gone so the button returns, and the 1-assertion
+  no-event-resolution block added at SW v51: `installApp` with no held
+  event resolves to `"none"` instead of the misleading dismissed path).
+  Don't assert exact intra-group row
   order in the day-record tests: sortOrder uses `Date.now()` so rapid
   `createTask` calls can tie, and `getAllTasks` tie-breaks by uuid key
   order — assert membership/sets and rely on the deterministic groups
@@ -1118,3 +1121,33 @@ Fix (JS/i18n/harness only; no DB/schema/CSS/backup change):
     is the always-working browser menu (⋮ → Save and Share → Install page
     as app…), which creates the desktop shortcut regardless of the
     install prompt.
+
+### No-event install de-conflation (SW v51)
+User report (v50 live): after deleting the stale `brave://apps` entry the
+install STILL fails, "Install wasn't completed". Diagnosis: that message
+was shown for **two different realities** — "the browser dismissed the
+dialog" (`userChoice` resolved dismissed) **and** "no `beforeinstallprompt`
+event was ever held" — because `installApp()` returned `false` for both.
+On Brave the no-event case is the common one (the event is often never
+sent, especially after an install was recorded at some point), so the
+"wasn't completed" wording wrongly implied a dialog had appeared and been
+cancelled. Fix (JS + harness + docs only; no DB/schema/CSS/backup change):
+- **`js/ui/installPrompt.js`**: `installApp()` now returns a distinct
+  `"none"` when no event is held (instead of `false`), so the click
+  handler's generic else-branch (menu-guidance toast + guide flash, plus
+  the stale-install branch) replaces the misleading dismissed message.
+  `false` is reserved for a genuinely-dismissed dialog.
+- **Harness** (`test/verify5.mjs`): +1 assertion (86 → **87**) — calling
+  `installApp()` with no event held resolves to `"none"`, never a
+  misleading cancelled/dead-end path.
+- Verified: `node --check` all JS; verify5 ALL VERIFIED (87) PASS; linkall
+  35 ok/1 fail (app.js DOM-only); CSS untouched. CACHE_NAME → v51.
+  - **Diagnostic next step with the user** (the real fix will come from
+    their browser, our code can only report accurately): (1) does the
+    native dialog actually appear when they click Install? (2) does the
+    install icon show in the Brave address bar for daily-tracker vs
+    missmybae? (3) does Brave's ⋮ → Save and Share → "Install … as app…"
+    menu item create the shortcut? (4) does the install work in an
+    Incognito window? The incognito test discriminates profile residue
+    ("installed at some point" flags that survive brave://apps removal)
+    from a site-level installability problem.

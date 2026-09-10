@@ -150,10 +150,12 @@ function withTimeout(promise, ms) {
   });
 }
 
-/** Result: `true` accepted, `false` user dismissed, `"unsupported"` the
- *  browser never answered (silently swallowed or threw) — never hangs. */
+/** Result: `true` accepted, `false` user dismissed, `"none"` the browser
+ *  held no install event at all (the honestly-common case on Brave),
+ *  `"unsupported"` the browser never answered (silently swallowed or
+ *  threw) — never hangs. */
 export async function installApp() {
-  if (!deferredPrompt) return false;
+  if (!deferredPrompt) return "none";
   let outcome = null;
   try {
     deferredPrompt.prompt();

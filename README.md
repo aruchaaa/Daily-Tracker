@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v50`. The app also auto-reloads itself once when a newer
+`daily-tracker-v51`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,17 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v51)
+
+- **"Install wasn't completed" de-conflated**: that message previously
+  covered *both* "you/the browser dismissed the real install dialog" **and**
+  "the browser never offered an install event at all" (the honestly-common
+  case on Brave, where `beforeinstallprompt` seldom arrives). `installApp`
+  now returns a distinct `"none"` for the no-event case, and the button
+  tells you the real story — "Your browser didn't allow an install prompt —
+  use your browser's menu below instead." — and highlights those menu
+  steps.
 
 ## What's new (cache v50)
 
