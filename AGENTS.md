@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v41`).
+  reference in `README.md` (currently `v42`).
 
 ## Architecture
 
@@ -124,7 +124,8 @@ daily-tracker/
     │   ├── screenHistory.js    month calendar + day detail, PDF via print
     │   ├── screenReport.js     monthly report, year grid, CSV, PDF
     │   ├── screenSettings.js   install, theme/accent, toggles, backup, danger zone
-    │   ├── installPrompt.js    beforeinstallprompt stash + installApp + listeners
+    │   ├── installPrompt.js    beforeinstallprompt stash + installApp + isInstalled/
+    │   │                       isIOS helpers + onInstallPromptReady listeners
     │   └── toast.js           showToast (stack ≤4, optional action) +
     │                          showConfirmDialog (optional type-to-confirm)
     └── backup/
@@ -774,3 +775,33 @@ DOM failure, expected; `confetti.js` added to the module list).
   ("Download Character Card", "Monthly Report", "History") all key off
   preserved EN button texts; `node --check` passes on every edited module.
   CACHE_NAME → v41.
+
+### Install that actually installs (SW v42)
+User report: "why can't it auto-install — my other project installs on
+first tap". Diagnosis: `beforeinstallprompt` is fully browser-owned and,
+on the very first visit, the freshly-registered service worker doesn't
+yet "control" the page that registered it, so browsers keep the install
+prompt gated — the button fell back to the hint toast for at least one
+visit. Fixes (no DB/CSS/schema change):
+- **First-visit self-reload** (`js/app.js` `registerServiceWorker`): when
+  registration resolves and `navigator.serviceWorker.controller === null`,
+  the page reloads exactly once (guarded by `sessionStorage["dt-sw-reloaded"]`)
+  so the worker takes control of the next load → installability gets
+  evaluated → the Settings Install button can actually fire. Skipped when
+  already installed / running standalone / iOS (where programmatic install
+  doesn't exist). The pre-existing SW *update* controllerchange reload is
+  untouched, so the two mechanisms can't double-reload.
+- **Platform-aware fallback toast** (`js/ui/screenSettings.js` +
+  `js/ui/installPrompt.js`): the Install click handler's `!canInstall()`
+  branch now routes per platform via a new `isIOS()` export — iOS gets
+  "use Share → Add to Home Screen" (`settings.installIOS`); anything else
+  gets "preparing once, then tap Install again" (`settings.installRefresh`).
+  The old generic `settings.installHint` key (now dead) was replaced by
+  those two keys in EN + ID.
+- **Live re-render already handled**: `onInstallPromptReady` in app.js
+  re-renders Settings the moment `beforeinstallprompt` arrives, so the
+  button becomes active without revisiting the tab.
+- Harness unchanged (verify5 never simulates a real SW/install flow; its
+  install assertions only check the button renders). Verified: verify5
+  ALL VERIFIED (68), linkall "35 ok, 1 fail", `node --check` on edited
+  modules. CACHE_NAME → v42.

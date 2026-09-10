@@ -5,7 +5,7 @@ import * as metaRepo from "../db/metaRepo.js";
 import { playSave, playError, playToggle, playDelete, playUndo } from "../core/sounds.js";
 import { el } from "./components.js";
 import { showConfirmDialog, showToast } from "./toast.js";
-import { canInstall, installApp, isInstalled } from "./installPrompt.js";
+import { canInstall, installApp, isInstalled, isIOS } from "./installPrompt.js";
 import { t, setLang as setI18nLang, getLang } from "../core/i18n.js";
 
 export async function renderSettings(container) {
@@ -385,7 +385,16 @@ function buildInstallSection(container) {
     onclick: async () => {
       if (!canInstall()) {
         playError();
-        showToast(t("settings.installHint"), "info", 4200);
+        // No stashed `beforeinstallprompt` yet. The reason differs by
+        // platform, so say something actionable instead of a dead end:
+        //   iOS      — programmatic install doesn't exist; handout the
+        //              Share → Add to Home Screen path.
+        //   Chromium — the worker may not have taken control yet (first
+        //              visit) or the browser is still gauging engagement;
+        //              the first-visit reload in app.js usually fixes it,
+        //              so tell the user to tap again.
+        const msg = isIOS() ? t("settings.installIOS") : t("settings.installRefresh");
+        showToast(msg, "info", 5000);
         return;
       }
       try {

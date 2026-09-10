@@ -211,7 +211,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v41`. The app also auto-reloads itself once when a newer
+`daily-tracker-v42`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -228,6 +228,22 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v42)
+
+- **Install that finally installs**: on the very first visit the app
+  reloads itself once so the service worker takes control of the page —
+  this is exactly what browsers wait for before allowing an in-app
+  "Install App" click to open the native install dialog. After the reload,
+  Settings → Install App should just work on Chrome/Brave/Edge (Android
+  and desktop).
+- **Smarter install button**: if the native prompt isn't available yet,
+  the button now tells you what to do per platform — on iPhone it explains
+  that you install via Share → Add to Home Screen (iOS has no programmatic
+  install); on Chromium it asks you to tap Install again after the one-time
+  setup reload.
+- **Install tip**: use a normal browser window, not a Private/Incognito
+  window — those never allow installing the app.
 
 ## What's new (cache v41)
 

@@ -59,6 +59,23 @@ export function isInstalled() {
   return false;
 }
 
+/** True when the app is running on iOS Safari (iPadOS reports "Macintosh",
+ *  so match the iPad token too, either as the OS or via the touch+touch
+ *  signal Mobile Safari uses). iOS has no `beforeinstallprompt`, so the
+ *  in-app Install button can only hand the user the Share → Add to Home
+ *  Screen path. */
+export function isIOS() {
+  try {
+    const ua = navigator.userAgent || "";
+    const hasMac = /Macintosh|Mac OS X/.test(ua);
+    const isTouch = /iPhone|iPad|iPod/.test(ua);
+    const mobileSafari = (hasMac && navigator.maxTouchPoints > 1) || isTouch;
+    return mobileSafari;
+  } catch (err) {
+    return false;
+  }
+}
+
 export async function installApp() {
   if (!deferredPrompt) return false;
   deferredPrompt.prompt();

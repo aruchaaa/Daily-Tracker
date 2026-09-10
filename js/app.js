@@ -9,7 +9,7 @@ import { loadAndApplyTheme } from "./core/theme.js";
 import { playNav } from "./core/sounds.js";
 import { scheduleTodayReminders } from "./core/notifications.js";
 import { getTodayDateString } from "./utils.js";
-import { captureInstallPrompt, onInstallPromptReady } from "./ui/installPrompt.js";
+import { captureInstallPrompt, onInstallPromptReady, isInstalled, isIOS } from "./ui/installPrompt.js";
 import { setLang as setI18nLang, t } from "./core/i18n.js";
 import * as metaRepo from "./db/metaRepo.js";
 
@@ -128,9 +128,29 @@ function dismissSplash() {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./service-worker.js").catch((err) => {
-      console.warn("Service worker registration failed:", err);
-    });
+    navigator.serviceWorker
+      .register("./service-worker.js")
+      .then(() => {
+        // First visit: a freshly-registered worker doesn't "control" the page
+        // that registered it — a page is only controlled from its next load
+        // on — and browsers keep `beforeinstallprompt` gated until it does.
+        // Reload once (sessionStorage-guarded) so the worker takes control
+        // and the Install button can actually fire; skip when the app is
+        // already installed, running standalone, or on iOS (no programmatic
+        // install there anyway).
+        if (
+          navigator.serviceWorker.controller === null &&
+          !isInstalled() &&
+          !isIOS() &&
+          !sessionStorage.getItem("dt-sw-reloaded")
+        ) {
+          sessionStorage.setItem("dt-sw-reloaded", "1");
+          window.location.reload();
+        }
+      })
+      .catch((err) => {
+        console.warn("Service worker registration failed:", err);
+      });
 
     // When a new service worker takes control (after an update), the page
     // that's already open is still running old code until it reloads.

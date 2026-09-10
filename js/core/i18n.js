@@ -219,7 +219,9 @@ const translations = {
     "settings.install": "Install",
     "settings.installDesc": "Add Daily Tracker to your home screen or taskbar for a full-screen, offline app experience. The button becomes active when your browser makes the app installable.",
     "settings.installBtn": "Install App",
-    "settings.installHint": "Not available from this page \u2014 use your browser menu instead: \u22EE \u2192 Install app / Add to Home Screen.",
+    "settings.installIOS": "Install isn't available directly on iOS \u2014 use Share \u2192 Add to Home Screen.",
+
+    "settings.installRefresh": "Preparing the app once\u2026 wait for the reload, then tap Install again.",
     "settings.installing": "Installing\u2026",
     "settings.installCancelled": "Install was cancelled.",
     "settings.installFailed": "Install failed",
@@ -513,7 +515,9 @@ const translations = {
     "settings.install": "Install",
     "settings.installDesc": "Pasang Daily Tracker ke layar beranda biar bisa full-screen dan offline. Tombol ini aktif kalau browser mendukung.",
     "settings.installBtn": "Install App",
-    "settings.installHint": "Nggak bisa dari halaman ini \u2014 pakai menu browser: \u22EE \u2192 Install app / Tambahkan ke Layar Beranda.",
+    "settings.installIOS": "Nggak bisa install langsung di iOS \u2014 pakai Share \u2192 Tambahkan ke Layar Beranda.",
+
+    "settings.installRefresh": "Nyiapin app sekali\u2026 tunggu reload-nya, terus ketuk Install lagi.",
     "settings.installing": "Installing\u2026",
     "settings.installCancelled": "Install dibatalkan.",
     "settings.installFailed": "Gagal install",
