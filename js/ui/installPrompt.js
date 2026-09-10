@@ -130,9 +130,13 @@ export function isAndroid() {
 }
 
 // How long to wait for the browser to answer `prompt()`. Some forks of
-// Chromium (notably Brave) can swallow `prompt()` completely: no dialog, and
-// `userChoice` never settles — which would hang the Install button forever.
-const INSTALL_PROMPT_TIMEOUT = 4000;
+// Chromium (notably Brave) can swallow `prompt()` completely: no dialog,
+// and `userChoice` never settles. But Windows installs can also be SLOW
+// (a few seconds under antivirus), so a too-short window would report
+// failure while the shortcut is actually still being created. 10s covers
+// the slow-but-real case; anything beyond that is treated as "still
+// installing — check your desktop", never as a failure.
+const INSTALL_PROMPT_TIMEOUT = 10000;
 
 function withTimeout(promise, ms) {
   return new Promise((resolve, reject) => {
@@ -150,25 +154,45 @@ function withTimeout(promise, ms) {
   });
 }
 
-/** Result: `true` accepted, `false` user dismissed, `"none"` the browser
- *  held no install event at all (the honestly-common case on Brave),
- *  `"unsupported"` the browser never answered (silently swallowed or
- *  threw) — never hangs. */
+/** Result: `true` accepted, `false` user dismissed, `"pending"` the dialog
+ *  is still working (Windows can install slowly — do NOT call this a
+ *  failure; `appinstalled` will flip the UI once it finishes), `"none"`
+ *  the browser held no install event at all (the honestly-common case on
+ *  Brave), `"unsupported"` `prompt()` itself threw. Never hangs. */
 export async function installApp() {
   if (!deferredPrompt) return "none";
-  let outcome = null;
+  const evt = deferredPrompt;
   try {
-    deferredPrompt.prompt();
-    const choice = await withTimeout(deferredPrompt.userChoice, INSTALL_PROMPT_TIMEOUT);
-    outcome = choice && choice.outcome;
+    evt.prompt();
   } catch (err) {
-    // prompt() threw or userChoice never settled — treat as unsupported and
-    // drop the held event so the button can't stay up as a dead tap.
-    outcome = null;
+    deferredPrompt = null;
+    notifyReady();
+    return "unsupported";
+  }
+  let choice = null;
+  let timedOut = false;
+  try {
+    choice = await withTimeout(evt.userChoice, INSTALL_PROMPT_TIMEOUT);
+  } catch (err) {
+    timedOut = true;
+  }
+  // If the feedback window lapsed, keep listening — a late resolution still
+  // marks the app installed so the UI corrects itself afterwards.
+  // (Only bound on the timed-out path: for a prompt that already answered,
+  // the `appinstalled` event covers the installed state.)
+  if (timedOut) {
+    evt.userChoice
+      .then((res) => {
+        if (res && res.outcome === "accepted") {
+          vestedInstalled = true;
+          notifyReady();
+        }
+      })
+      .catch(() => {});
   }
   deferredPrompt = null;
   notifyReady();
-  if (outcome === "accepted") return true;
-  if (outcome === "dismissed") return false;
-  return "unsupported";
+  if (timedOut) return "pending";
+  if (choice && choice.outcome === "accepted") return true;
+  return false;
 }

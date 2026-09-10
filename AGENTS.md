@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v51`). The manifest is
+  reference in `README.md` (currently `v52`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -604,10 +604,13 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `getInstalledRelatedApps` absence reports not-installed without throwing,
   a webapp record for this origin drops the Install button and shows the
   brave://apps clear-instruction panel, and detection resets to false once
-  the record is gone so the button returns, and the 1-assertion
+  the record is gone so the button returns, the 1-assertion
   no-event-resolution block added at SW v51: `installApp` with no held
-  event resolves to `"none"` instead of the misleading dismissed path).
-  Don't assert exact intra-group row
+  event resolves to `"none"` instead of the misleading dismissed path,
+  and the 1-assertion slow-install block added at SW v52: a
+  `prompt()`-throwing event still resolves `"unsupported"` — the never-
+  false-failure guarantee is asserted through the branches the harness can
+  reach without real timers). Don't assert exact intra-group row
   order in the day-record tests: sortOrder uses `Date.now()` so rapid
   `createTask` calls can tie, and `getAllTasks` tie-breaks by uuid key
   order — assert membership/sets and rely on the deterministic groups

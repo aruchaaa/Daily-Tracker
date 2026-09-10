@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v51`. The app also auto-reloads itself once when a newer
+`daily-tracker-v52`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,20 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v52)
+
+- **Slow installs are no longer called failures**: Brave's install dialog
+  can legitimately take several seconds on Windows (antivirus/disk), and
+  the old 4-second "anti-hang" timeout reported *failure* while the
+  shortcut was still being created — exactly the "Install wasn't completed"
+  you kept seeing even after deleting the ghost entry and retrying in a
+  fresh Incognito profile. The feedback window is now 10s, and if the
+  browser still hasn't answered by then the button says "Installing — check
+  your desktop for the shortcut" instead of "failed"; a late success still
+  flips the UI to "App installed" via `appinstalled`. Clicking Install in
+  the native dialog now either works, or tells you the truth about what
+  happened — never a phantom failure.
 
 ## What's new (cache v51)
 

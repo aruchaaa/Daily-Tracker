@@ -449,6 +449,7 @@ function buildInstallSection(container) {
         onclick: async () => {
           try {
             const result = await installApp();
+            let flash = false;
             if (result === true) {
               playSave();
               showToast(t("settings.installed"), "success");
@@ -459,10 +460,15 @@ function buildInstallSection(container) {
               } else {
                 showToast(t("settings.installNotCompleted"), "info");
               }
+            } else if (result === "pending") {
+              // The dialog is still working (Windows installs can be slow).
+              // Never claim failure; `appinstalled` flips the UI when done.
+              showToast(t("settings.installPending"), "info");
             } else {
-              // No usable install mechanism (Brave often has neither an
-              // event nor a native <install> element) — guide the user to
-              // the always-working browser-menu path instead of a dead tap.
+              // "none": no event held, or "unsupported": the browser never
+              // answered/(prompt() threw) — guide the user to the
+              // always-working browser-menu path instead of a dead tap.
+              flash = true;
               if (isRelatedInstalled()) {
                 playError();
                 showToast(t("settings.installAlreadyDetected"), "error");
@@ -471,14 +477,17 @@ function buildInstallSection(container) {
                 showToast(t("settings.installUnsupported"), "error");
               }
             }
-            // Re-render rebuilds the section; then flash the freshly built
-            // guide so the reliable path is obvious.
+            // Re-render rebuilds the section; flash the freshly built guide
+            // only when the click ended on "no prompt mechanism", so the
+            // reliable path is obvious.
             await renderSettings(container);
-            const guide = container.querySelector(".install-guide");
-            if (guide) {
-              guide.classList.remove("install-guide--flash");
-              void guide.offsetWidth;
-              guide.classList.add("install-guide--flash");
+            if (flash) {
+              const guide = container.querySelector(".install-guide");
+              if (guide) {
+                guide.classList.remove("install-guide--flash");
+                void guide.offsetWidth;
+                guide.classList.add("install-guide--flash");
+              }
             }
           } catch (err) {
             playError();
