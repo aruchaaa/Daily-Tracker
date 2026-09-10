@@ -2,10 +2,10 @@ import { exportBackup, importBackup, importBackupMerge, clearAllData, copyBackup
 import { THEMES, setTheme, setCustomAccent } from "../core/theme.js";
 import { enableReminders, disableReminders } from "../core/notifications.js";
 import * as metaRepo from "../db/metaRepo.js";
-import { playSave, playError, playToggle, playDelete, playUndo } from "../core/sounds.js";
+import { playClick, playSave, playError, playToggle, playDelete, playUndo } from "../core/sounds.js";
 import { el } from "./components.js";
 import { showConfirmDialog, showToast } from "./toast.js";
-import { installApp, isInstalled, isIOS, isAndroid, isRelatedInstalled, supportsInstallElement } from "./installPrompt.js";
+import { installApp, hasInstallPrompt } from "./installPrompt.js";
 import { t, setLang as setI18nLang, getLang } from "../core/i18n.js";
 
 export async function renderSettings(container) {
@@ -388,126 +388,25 @@ function rgbToHex(rgbStr) {
   return `#${toHex(match[1])}${toHex(match[2])}${toHex(match[3])}`;
 }
 
+// Install UI mirrors the proven missmybae pattern: the "Install App"
+// button exists ONLY while the browser is offering a `beforeinstallprompt`
+// event. When the event never arrives (e.g. Brave remembering an old
+// install), there is simply no install UI — the browser's own address-bar
+// icon / ⋮ menu is the path.
 function buildInstallSection(container) {
-  // Already installed (this session saw appinstalled, or the app is
-  // running standalone / from an iOS home screen) — no install UI.
-  if (isInstalled()) {
-    return el("div", { class: "settings-section" }, [
-      el("h3", { text: t("settings.install") }),
-      el("p", { class: "settings-status", text: t("settings.installed") }),
-    ]);
-  }
-
-  // iOS has no programmatic install — only the Share → Add to Home Screen
-  // path exists, so show that instead of a dead button.
-  if (isIOS()) {
-    return el("div", { class: "settings-section" }, [
-      el("h3", { text: t("settings.install") }),
-      el("p", { class: "settings-desc", text: t("settings.installDesc") }),
-      el("div", { class: "install-guide", role: "note" }, [
-        el("p", { class: "install-guide__intro", text: t("settings.installIOS") }),
-      ]),
-    ]);
-  }
-
-  // Chromium engines (Chrome/Brave/Edge): always render a pressable install
-  // control — never a text-only dead end. The browser-native <install>
-  // element is the most reliable (it works without a `beforeinstallprompt`
-  // event), so use it where supported; otherwise fall back to our own
-  // button, which prompts when the browser held out an event and otherwise
-  // explains the always-working browser-menu path.
-  //
-  // If the browser *itself* reports this origin's app as installed
-  // (getInstalledRelatedApps), prompting is futile — Chromium declines it
-  // and resolves "dismissed" — so guide the user to clear the stale entry
-  // instead of offering a button that can't win.
-  if (isRelatedInstalled()) {
-    return el("div", { class: "settings-section" }, [
-      el("h3", { text: t("settings.install") }),
-      el("p", { class: "settings-desc", text: t("settings.installAlreadyDetected") }),
-      el("div", { class: "install-guide", role: "note" }, [
-        el("p", { class: "install-guide__intro", text: t("settings.installNote") }),
-        el("p", { class: "install-guide__step", text: t("settings.installGuideDesktop") }),
-        el("p", { class: "install-guide__step", text: t("settings.installExisting") }),
-      ]),
-    ]);
-  }
-
-  const children = [
+  if (!hasInstallPrompt()) return null;
+  return el("div", { class: "settings-section" }, [
     el("h3", { text: t("settings.install") }),
-    el("p", { class: "settings-desc", text: t("settings.installDesc") }),
-  ];
-
-  if (supportsInstallElement()) {
-    children.push(el("install", { class: "btn btn--primary install-pwa", role: "button" }));
-  } else {
-    children.push(
-      el("button", {
-        class: "btn btn--primary",
-        type: "button",
-        text: t("settings.installBtn"),
-        onclick: async () => {
-          try {
-            const result = await installApp();
-            let flash = false;
-            if (result === true) {
-              playSave();
-              showToast(t("settings.installed"), "success");
-            } else if (result === false) {
-              if (isRelatedInstalled()) {
-                playError();
-                showToast(t("settings.installAlreadyDetected"), "error");
-              } else {
-                showToast(t("settings.installNotCompleted"), "info");
-              }
-            } else if (result === "pending") {
-              // The dialog is still working (Windows installs can be slow).
-              // Never claim failure; `appinstalled` flips the UI when done.
-              showToast(t("settings.installPending"), "info");
-            } else {
-              // "none": no event held, or "unsupported": the browser never
-              // answered/(prompt() threw) — guide the user to the
-              // always-working browser-menu path instead of a dead tap.
-              flash = true;
-              if (isRelatedInstalled()) {
-                playError();
-                showToast(t("settings.installAlreadyDetected"), "error");
-              } else {
-                playError();
-                showToast(t("settings.installUnsupported"), "error");
-              }
-            }
-            // Re-render rebuilds the section; flash the freshly built guide
-            // only when the click ended on "no prompt mechanism", so the
-            // reliable path is obvious.
-            await renderSettings(container);
-            if (flash) {
-              const guide = container.querySelector(".install-guide");
-              if (guide) {
-                guide.classList.remove("install-guide--flash");
-                void guide.offsetWidth;
-                guide.classList.add("install-guide--flash");
-              }
-            }
-          } catch (err) {
-            playError();
-            showToast(t("settings.installFailed") + ": " + err.message, "error");
-          }
-        },
-      })
-    );
-  }
-
-  const guideLine = isAndroid() ? t("settings.installGuideAndroid") : t("settings.installGuideDesktop");
-  const resetLine = isAndroid() ? t("settings.installResetAndroid") : t("settings.installResetDesktop");
-  const guideChildren = [
-    el("p", { class: "install-guide__intro", text: t("settings.installNote") }),
-    el("p", { class: "install-guide__step", text: guideLine }),
-    el("p", { class: "install-guide__step", text: resetLine }),
-  ];
-  children.push(el("div", { class: "install-guide", role: "note" }, guideChildren));
-
-  return el("div", { class: "settings-section" }, children);
+    el("button", {
+      class: "btn btn--primary",
+      type: "button",
+      text: t("settings.installBtn"),
+      onclick: () => {
+        playClick();
+        void installApp();
+      },
+    }),
+  ]);
 }
 
 function buildThemeSection(currentTheme, container) {

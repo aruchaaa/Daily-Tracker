@@ -217,24 +217,7 @@ const translations = {
 
     "settings.title": "Settings & Backup",
     "settings.install": "Install",
-    "settings.installDesc": "Add Daily Tracker to your home screen or taskbar for a full-screen, offline app experience.",
     "settings.installBtn": "Install App",
-    "settings.installIOS": "Install isn't available directly on iOS \u2014 use Share \u2192 Add to Home Screen.",
-
-    "settings.installNote": "Install from your browser's own menu \u2014 that always works:",
-
-    "settings.installGuideDesktop": "Browser menu (\u22EE) \u2192 Save and Share \u2192 Install page as app\u2026",
-
-    "settings.installGuideAndroid": "Browser menu (\u22EE) \u2192 Install app (or Add to Home screen).",
-    "settings.installExisting": "Installed it before and it vanished? Delete the old \u201cDaily Tracker\u201d entry in your browser's app list (brave://apps / chrome://apps) first \u2014 Chromium hides the install option once it thinks the app is already installed.",
-    "settings.installNotCompleted": "Install wasn't completed \u2014 try the button again, or use your browser's menu below.",
-    "settings.installPending": "Installing \u2014 this can take a moment. Check your desktop for the Daily Tracker shortcut.",
-    "settings.installAlreadyDetected": "This browser thinks the app is already installed, so the install dialog declines it. Open brave://apps (or chrome://apps), right-click Daily Tracker \u2192 Remove, then reload and try again.",
-    "settings.installFailed": "Install failed",
-    "settings.installUnsupported": "Brave hides the install prompt because it remembers an old install of this app. Reset it: click the shield/lock icon in the address bar \u2192 Site settings \u2192 Clear data \u2192 reload. Then this button opens the same dialog as the address-bar icon.",
-    "settings.installResetDesktop": "The install dialog stopped appearing? The browser remembers an old install of this app. Reset it once: shield/lock icon in the address bar \u2192 Site settings \u2192 Clear data \u2192 reload \u2014 then the button installs normally.",
-    "settings.installResetAndroid": "The install option vanished? The browser remembers this app was installed before. Reset once: lock icon in the address bar \u2192 Cookies and site data \u2192 clear data \u2192 reload \u2014 then the button installs normally.",
-    "settings.installed": "App installed — you're good to go.",
     "settings.appearance": "Appearance",
     "settings.appearanceDesc": "Pick a visual theme \u2014 changes apply instantly.",
     "settings.customAccent": "Custom Accent",
@@ -535,24 +518,7 @@ const translations = {
 
     "settings.title": "Pengaturan & Backup",
     "settings.install": "Install",
-    "settings.installDesc": "Pasang Daily Tracker ke layar beranda biar bisa full-screen dan offline.",
     "settings.installBtn": "Install App",
-    "settings.installIOS": "Nggak bisa install langsung di iOS \u2014 pakai Share \u2192 Tambahkan ke Layar Beranda.",
-
-    "settings.installNote": "Install lewat menu browser sendiri aja \u2014 pasti jalan:",
-
-    "settings.installGuideDesktop": "Menu browser (\u22EE) \u2192 Save and Share \u2192 Install page as app\u2026",
-
-    "settings.installGuideAndroid": "Menu browser (\u22EE) \u2192 Install app (atau Add to Home screen).",
-    "settings.installExisting": "Pernah install terus app-nya ilang? Hapus dulu entri \u201cDaily Tracker\u201d di daftar aplikasi browser (brave://apps / chrome://apps) \u2014 opsi install nggak bakal muncul kalau browser ngira app-nya udah keinstall.",
-    "settings.installNotCompleted": "Install-nya belum kelar \u2014 coba lagi tombolnya, atau pakai menu browser di bawah.",
-    "settings.installPending": "Lagi pasang \u2014 kadang butuh beberapa detik. Cek desktop buat shortcut Daily Tracker.",
-    "settings.installAlreadyDetected": "Browser mikir app-nya udah keinstall, makanya dialog install nolak. Buka brave://apps (atau chrome://apps), klik kanan Daily Tracker \u2192 Remove, reload, terus coba lagi.",
-    "settings.installFailed": "Gagal install",
-    "settings.installUnsupported": "Brave nyembunyiin prompt install karena inget app ini pernah diinstall. Reset sekali: klik ikon gembok/perisai di address bar \u2192 Site settings \u2192 Clear data \u2192 reload. Nanti tombol Install buka dialog yang sama kayak ikon di address bar.",
-    "settings.installResetDesktop": "Dialog install nggak muncul lagi? Browser inget app ini pernah keinstall. Reset sekali: ikon gembok/perisai di address bar \u2192 Site settings \u2192 Clear data \u2192 reload \u2014 terus tombolnya normal lagi.",
-    "settings.installResetAndroid": "Opsi install-nya ilang? Browser inget app ini pernah dipasang. Reset sekali: ikon gembok di address bar \u2192 Cookies dan data situs \u2192 hapus data \u2192 reload \u2014 terus tombol install normal lagi.",
-    "settings.installed": "App udah keinstall — gas pol.",
     "settings.appearance": "Tampilan",
     "settings.appearanceDesc": "Pilih tema \u2014 langsung berubah.",
     "settings.customAccent": "Warna Aksen",

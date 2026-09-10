@@ -1107,50 +1107,6 @@
   min-height: 18px;
 }
 
-.install-guide {
-  margin-top: 12px;
-  padding: 10px 12px;
-  border: 1px dashed var(--panel-border);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--bg-raised) 70%, transparent);
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--ink-dim);
-}
-
-.install-guide__intro {
-  margin: 0 0 4px;
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.install-guide__step {
-  margin: 0;
-}
-
-.install-pwa {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-
-.install-guide--flash {
-  animation: install-guide-flash 1.2s ease-out;
-}
-
-@keyframes install-guide-flash {
-  0% {
-    border-color: var(--gold);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent),
-      0 0 16px color-mix(in srgb, var(--gold) 40%, transparent);
-  }
-  100% {
-    border-color: var(--panel-border);
-    box-shadow: none;
-  }
-}
-
 .theme-option-list {
   display: flex;
   flex-direction: column;

@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v53`. The app also auto-reloads itself once when a newer
+`daily-tracker-v54`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,19 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v54)
+
+- **Install rebuilt exactly like the reference (missmybae)**: every custom
+  install mechanism we'd layered on (native `<install>` element, stale-
+  install detection, slow-install timeouts, iOS/Android panes, guides and
+  reset toasts) is gone. What remains is missmybae's proven four lines:
+  defer `beforeinstallprompt`, show the Install App button **only while
+  that event is held**, `prompt()` + `await userChoice`, clear on
+  `appinstalled`. No install toast, no timeout race, no explanation panel.
+  If the browser never offers the event, the Settings tab simply has no
+  install button — the browser's own address-bar icon / ⋮ menu is the
+  path, exactly as with any site the browser deems uninstallable.
 
 ## What's new (cache v53)
 

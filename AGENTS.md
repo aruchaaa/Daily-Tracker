@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v53`). The manifest is
+  reference in `README.md` (currently `v54`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -587,30 +587,15 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **87** (hard-tier seeded 503-day range +
-  backfilled 40-day tail, install-prompt section, the 12-assertion
-  day-record block added at SW v36, the 2-assertion badge-i18n
-  regression block added at SW v44, the 2-assertion install-gating
-  rework at SW v46: the Install button is hidden until a `beforeinstallprompt`
-  event is held, then appears responsive, the 5-assertion install
-  anti-hang block added at SW v47: `installApp` returns true for an
-  accepted prompt and clears the event, resolves to `"unsupported"`
-  (instead of hanging) when the browser silently swallows `prompt()`, and
-  the button hides again so no dead tap lingers, the 2-assertion
-  always-pressable-install rework at SW v48: native-install detection
-  exists, the Install button always renders as a pressable control — even
-  with no `beforeinstallprompt` event — and stays pressable after a dropped
-  prompt, the 7-assertion stale-install block added at SW v50:
-  `getInstalledRelatedApps` absence reports not-installed without throwing,
-  a webapp record for this origin drops the Install button and shows the
-  brave://apps clear-instruction panel, and detection resets to false once
-  the record is gone so the button returns, the 1-assertion
-  no-event-resolution block added at SW v51: `installApp` with no held
-  event resolves to `"none"` instead of the misleading dismissed path,
-  and the 1-assertion slow-install block added at SW v52: a
-  `prompt()`-throwing event still resolves `"unsupported"` — the never-
-  false-failure guarantee is asserted through the branches the harness can
-  reach without real timers). Don't assert exact intra-group row
+- Current assertion count is **77** (hard-tier seeded 503-day range +
+  backfilled 40-day tail, the 12-assertion day-record block added at SW
+  v36, the 2-assertion badge-i18n regression block added at SW v44, and
+  the 11-assertion missmybae-style install block added at SW v54: no
+  Install button with no held `beforeinstallprompt` event,
+  `installApp()` resolves quietly — never a failure/dead-end —, the
+  button appears only while the event is held, prompts that resolve or
+  throw both clear the event safely (no hangs, no toasts), and
+  `appinstalled` removes the button). Don't assert exact intra-group row
   order in the day-record tests: sortOrder uses `Date.now()` so rapid
   `createTask` calls can tie, and `getAllTasks` tie-breaks by uuid key
   order — assert membership/sets and rely on the deterministic groups
@@ -1209,3 +1194,55 @@ Fix (i18n/UI/docs only; no DB/schema/CSS/backup change):
   Android: lock icon → Cookies and site data). The `isRelatedInstalled()`
   panel keeps its own brave://apps clear instructions.
 - Harness unchanged (87). CACHE_NAME → v53.
+
+### Install rebuilt to match missmybae exactly (SW v54)
+User's final direction: "hapus semua fitur instal ini, bangun dari awal,
+bikin dengan cara yang sama persis seperti project missmybae." The whole
+custom install apparatus we'd layered on across v46–v53 is removed and
+replaced with the reference's proven four-line pattern (read verbatim out
+of `ai-companion` `client/src/App.jsx`: defer `beforeinstallprompt`,
+render the button **only** while the event is held, `prompt()` +
+`await userChoice` in a try/catch, clear on `appinstalled`). No DB/
+schema/backup change; JS + CSS + i18n + harness + docs only.
+- **`js/ui/installPrompt.js` written from scratch** (path kept): exports
+  are now just `captureInstallPrompt()` (registers `beforeinstallprompt` +
+  `appinstalled`), `hasInstallPrompt()`, `installApp()`, and
+  `onInstallPromptReady`. Deleted: `isInstalled`, `isIOS`, `isAndroid`,
+  `isRelatedInstalled`, `refreshRelatedInstalled`, `canInstall`,
+  `supportsInstallElement`, `withTimeout`, `INSTALL_PROMPT_TIMEOUT`,
+  `vestedInstalled`. `installApp()` returns nothing, swallows any
+  `prompt()`/`userChoice` rejection (cancelling the dialog is normal), and
+  clears the event.
+- **`js/ui/screenSettings.js`**: `buildInstallSection` is now six lines —
+  `if (!hasInstallPrompt()) return null;` then a heading + a plain
+  `Install App` button whose handler just plays the click sfx and calls
+  `installApp()`. No toasts, no branches, no flash, no re-render-on-click.
+  `el()` null-filters, so the whole section disappears when the browser
+  offers no event (missmybae shows *nothing* install-related then too).
+- **`js/app.js`**: untouched — `captureInstallPrompt()` at boot and the
+  `onInstallPromptReady` Settings re-render (so the button pops in/out
+  live) still line up with the kept export names.
+- **CSS**: `.install-guide`, `__intro`, `__step`, `.install-pwa`,
+  `.install-guide--flash` + `@keyframes install-guide-flash` deleted.
+- **i18n**: `settings.install` + `settings.installBtn` kept; all sixteen
+  saga keys (`installDesc`, `installIOS`, `installNote`, `installGuide*`,
+  `installExisting`, `installNotCompleted`, `installPending`,
+  `installAlreadyDetected`, `installFailed`, `installUnsupported`,
+  `installReset*`, `installed`) deleted in EN and ID.
+- **Harness** (`test/verify5.mjs`): the 21-assertion install saga block
+  (canInstall/supportsInstallElement/timed-out outcomes/stale-install
+  stubs) replaced with an 11-assertion missmybae-style block — no button
+  with no event, `installApp()` resolves quietly (undefined), button
+  appears only while the event is held, prompts that resolve or throw both
+  clear the event without hanging, `appinstalled` removes the button.
+  87 → **77**.
+- Verified: `node --check` all edited JS; verify5 ALL VERIFIED (77);
+  linkall 35 ok/1 fail (app.js DOM-only); CSS braces balanced; grep shows
+  no leftover install-saga class/key references in `js/`/`css/`.
+  CACHE_NAME → v54.
+  - **Behavioral note for the user**: from now on the Install button
+    exists *only* when the browser actually offers `beforeinstallprompt`.
+    On a Brave profile that still remembers an earlier install of this
+    origin, that event stays suppressed, so the Settings tab shows no
+    install button until the origin's site data is cleared — the browser's
+    own address-bar icon / ⋮ menu is the install path in the meantime.

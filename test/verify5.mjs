@@ -275,80 +275,45 @@ assert(freshIds.includes("target-streak-7") && freshIds.includes("target-streak-
 const stillLocked = fresh.every((a) => a.id !== "exp-10000" && a.id !== "level-20");
 assert(stillLocked, "10K EXP / level 20 stay locked at ~5K EXP");
 
-// ---- Install prompt ---------------------------------------------------------
-assert(typeof installPrompt.canInstall === "function" && typeof installPrompt.installApp === "function", "installPrompt module exports");
-assert(typeof installPrompt.supportsInstallElement === "function" && installPrompt.supportsInstallElement() === false, "installPrompt native-install detection exists (Node has none)");
-// The Install control must ALWAYS render as a pressable button — even when
-// the browser never hands us a `beforeinstallprompt` event (e.g. Brave). A
-// text-only guide would just leave the user with no way forward.
+// ---- Install prompt (missmybae pattern) ------------------------------------
+// Mirrors the proven reference (missmybae App.jsx): defer the
+// `beforeinstallprompt` event, render the Install App button ONLY while it
+// is held, and clear on installApp/appinstalled. No guides, toasts, or
+// timeout races — if the browser offers no event, there is no install UI.
+assert(typeof installPrompt.hasInstallPrompt === "function" && typeof installPrompt.installApp === "function", "installPrompt module exports");
 c = new FakeNode("div");
 await screenSettings.renderSettings(c);
-assert(Boolean(findByText(c, "Install App")), "Install App button always renders (never text-only)");
-const preEventBtn = findByText(c, "Install App");
-assert(preEventBtn && preEventBtn.disabled !== true, "Install App button is pressable even before any prompt event");
-assert((await installPrompt.installApp()) === "none", "installApp with no event held resolves to none (never a misleading dismissed/menu dead-end)");
-assert(Boolean(findNode(c, "install-guide")), "Settings shows the native install guide");
-assert(Boolean(findNode(c, "settings-section")), "Settings sections render");
-// Fake a `beforeinstallprompt` event: the button stays present + pressable.
+assert(!findByText(c, "Install App"), "no Install App button when the browser offers no prompt event");
+assert((await installPrompt.installApp()) === undefined, "installApp with no event held resolves quietly (undefined), never a dead-end");
 installPrompt.captureInstallPrompt();
+window.dispatch("beforeinstallprompt", { preventDefault() {} });
+assert(installPrompt.hasInstallPrompt() === true, "beforeinstallprompt stashes the install event");
+c = new FakeNode("div");
+await screenSettings.renderSettings(c);
+assert(Boolean(findByText(c, "Install App")), "Settings shows the Install App button while the event is held");
+const heldBtn = findByText(c, "Install App");
+assert(heldBtn && heldBtn.disabled !== true, "Install App button is a pressable control");
+// A normal prompt that resolves accepted: installApp() handles the flow,
+// clears the held event, and returns nothing.
 window.dispatch("beforeinstallprompt", {
   preventDefault() {},
   prompt() { return Promise.resolve(); },
   userChoice: Promise.resolve({ outcome: "accepted" }),
 });
-c = new FakeNode("div");
-await screenSettings.renderSettings(c);
-assert(Boolean(findByText(c, "Install App")), "Install App button renders while a prompt event is held");
-const heldBtn = findByText(c, "Install App");
-assert(heldBtn && heldBtn.disabled !== true, "Install App button stays responsive when an event is held");
-// Drive installApp() itself. A normal (Chrome/Edge) prompt that resolves
-// accepted returns true and clears the held event.
 const acceptedResult = await installPrompt.installApp();
-assert(acceptedResult === true, "installApp returns true for an accepted prompt");
-assert(installPrompt.canInstall() === false, "Accepted prompt clears the held event");
-// A browser that hands us the event but then silently swallows prompt()
-// (no usable prompt / never-resolving userChoice — Brave) must NOT hang the
-// button: installApp resolves with "unsupported" and drops the event; the
-// button itself stays pressable so the user is never left with bare text.
-installPrompt.captureInstallPrompt();
+assert(acceptedResult === undefined && installPrompt.hasInstallPrompt() === false, "installApp resolves quietly and clears the held event");
+// A prompt() that throws (browser swallows the install flow) must not throw
+// or hang the button either.
 window.dispatch("beforeinstallprompt", { preventDefault() {} });
-const silentResult = await installPrompt.installApp();
-assert(silentResult === "unsupported", "installApp resolves instead of hanging when the prompt is silently swallowed");
-assert(installPrompt.canInstall() === false, "Dropped prompt clears the held event — no dead button");
+assert((await installPrompt.installApp()) === undefined, "installApp swallows a throwing prompt (never hangs, never fails)");
+assert(installPrompt.hasInstallPrompt() === false, "throwing/consumed prompt clears the held event");
+// appinstalled ends installability: no event, no button.
+window.dispatch("beforeinstallprompt", { preventDefault() {} });
+window.dispatch("appinstalled", {});
+assert(installPrompt.hasInstallPrompt() === false, "appinstalled clears the held event");
 c = new FakeNode("div");
 await screenSettings.renderSettings(c);
-assert(Boolean(findByText(c, "Install App")), "Install App button stays pressable after a dropped prompt");
-// Stale-install detection: with no browser installed-app record, detection
-// reports "not installed" and the button keeps rendering.
-assert((await installPrompt.refreshRelatedInstalled()) === false, "getInstalledRelatedApps absent -> not detected (never throws)");
-assert(installPrompt.isRelatedInstalled() === false, "isRelatedInstalled false when the browser has no record");
-// But if the browser DOES list this origin's PWA as installed (a stale
-// entry from an earlier install attempt), the section must drop the button
-// and explain how to clear the browser-side state instead.
-const savedNav = globalThis.navigator;
-globalThis.location = { href: "https://levelupdailytracker.vercel.app/" };
-Object.defineProperty(globalThis, "navigator", {
-  value: {
-    getInstalledRelatedApps: async () => [
-      { platform: "webapp", url: "https://levelupdailytracker.vercel.app/" },
-    ],
-  },
-  configurable: true,
-});
-try {
-  assert((await installPrompt.refreshRelatedInstalled()) === true, "getInstalledRelatedApps lists this origin -> detected as installed");
-  c = new FakeNode("div");
-  await screenSettings.renderSettings(c);
-  assert(!findByText(c, "Install App"), "Install button hidden when a stale install is detected");
-  assert(Boolean(findByText(c, "brave://apps")), "Stale-install panel tells the user to clear brave://apps");
-} finally {
-  Object.defineProperty(globalThis, "navigator", { value: savedNav, configurable: true });
-  delete globalThis.location;
-}
-assert((await installPrompt.refreshRelatedInstalled()) === false, "Detection resets to false when the record is gone");
-c = new FakeNode("div");
-await screenSettings.renderSettings(c);
-assert(Boolean(findByText(c, "Install App")), "Install App button returns after detection resets");
+assert(!findByText(c, "Install App"), "Install App button vanishes after appinstalled");
 
 // ---- History day record: every task of the day ------------------------------
 // Witness day 2026-06-10: BEFORE the July 1 hard-tier loop began, so no
