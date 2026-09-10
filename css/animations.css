@@ -1,0 +1,491 @@
+/* ==========================================================================
+   Daily Tracker — Micro-interaction animations
+   All transitions respect prefers-reduced-motion via the blanket rule
+   in main.css. These enhance the experience for users without
+   motion sensitivity.
+   ========================================================================== */
+
+/* ---- Splash screen ------------------------------------------------------- */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--bg);
+  background-image: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--gold) 8%, transparent) 0%, transparent 55%);
+}
+
+.splash__icon {
+  width: 96px;
+  height: 96px;
+  opacity: 0;
+  animation: splash-icon-in 0.7s 0.1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.splash__title {
+  font-family: var(--font-stat);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: splash-fade-up 0.5s 0.45s ease forwards;
+}
+
+.splash__sub {
+  font-size: 12px;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+  opacity: 0;
+  animation: splash-fade-up 0.4s 0.65s ease forwards;
+}
+
+.splash__bar {
+  width: 48px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--panel-border);
+  overflow: hidden;
+  margin-top: 8px;
+  opacity: 0;
+  animation: splash-fade-up 0.3s 0.8s ease forwards;
+}
+
+.splash__bar::after {
+  content: "";
+  display: block;
+  width: 50%;
+  height: 100%;
+  background: var(--gold);
+  border-radius: 2px;
+  animation: splash-slide 1s ease-in-out infinite;
+}
+
+.splash--exit {
+  animation: splash-exit 0.45s ease forwards;
+}
+
+@keyframes splash-icon-in {
+  from { opacity: 0; transform: scale(0.4) rotate(-12deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes splash-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes splash-slide {
+  0%   { transform: translateX(-110%); }
+  50%  { transform: translateX(120%); }
+  100% { transform: translateX(300%); }
+}
+
+@keyframes splash-exit {
+  from { opacity: 1; }
+  to   { opacity: 0; pointer-events: none; }
+}
+
+/* ---- Page / screen entrance ---------------------------------------------- */
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#app > * {
+  animation: page-in 0.3s ease both;
+}
+
+/* ---- Card / panel entrance (staggered) ----------------------------------- */
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.level-panel,
+.task-list,
+.target-card,
+.sleep-card,
+.moment-card,
+.profile-name-card,
+.settings-section,
+.exp-trend-wrap,
+.heatmap-wrap,
+.history-calendar,
+.report-grid,
+.ach-grid,
+.report-controls,
+.onboarding-card,
+.backup-banner {
+  animation: card-in 0.35s ease both;
+}
+
+.task-list          { animation-delay: 0.04s; }
+.target-card        { animation-delay: 0.08s; }
+.sleep-card         { animation-delay: 0.12s; }
+.moment-card        { animation-delay: 0.16s; }
+
+/* ---- List item stagger --------------------------------------------------- */
+
+@keyframes item-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.task-row:nth-child(1)  { animation: item-in 0.25s 0.05s ease both; }
+.task-row:nth-child(2)  { animation: item-in 0.25s 0.08s ease both; }
+.task-row:nth-child(3)  { animation: item-in 0.25s 0.11s ease both; }
+.task-row:nth-child(4)  { animation: item-in 0.25s 0.14s ease both; }
+.task-row:nth-child(5)  { animation: item-in 0.25s 0.17s ease both; }
+.task-row:nth-child(6)  { animation: item-in 0.25s 0.20s ease both; }
+.task-row:nth-child(7)  { animation: item-in 0.25s 0.23s ease both; }
+.task-row:nth-child(8)  { animation: item-in 0.25s 0.26s ease both; }
+
+.task-manage-row:nth-child(1) { animation: item-in 0.25s 0.04s ease both; }
+.task-manage-row:nth-child(2) { animation: item-in 0.25s 0.08s ease both; }
+.task-manage-row:nth-child(3) { animation: item-in 0.25s 0.12s ease both; }
+.task-manage-row:nth-child(4) { animation: item-in 0.25s 0.16s ease both; }
+.task-manage-row:nth-child(5) { animation: item-in 0.25s 0.20s ease both; }
+.task-manage-row:nth-child(6) { animation: item-in 0.25s 0.24s ease both; }
+
+.history-item:nth-child(1) { animation: item-in 0.25s 0.04s ease both; }
+.history-item:nth-child(2) { animation: item-in 0.25s 0.08s ease both; }
+.history-item:nth-child(3) { animation: item-in 0.25s 0.12s ease both; }
+.history-item:nth-child(4) { animation: item-in 0.25s 0.16s ease both; }
+.history-item:nth-child(5) { animation: item-in 0.25s 0.20s ease both; }
+.history-item:nth-child(6) { animation: item-in 0.25s 0.24s ease both; }
+
+.ach-tile:nth-child(1)  { animation: card-in 0.25s 0.02s ease both; }
+.ach-tile:nth-child(2)  { animation: card-in 0.25s 0.04s ease both; }
+.ach-tile:nth-child(3)  { animation: card-in 0.25s 0.06s ease both; }
+.ach-tile:nth-child(4)  { animation: card-in 0.25s 0.08s ease both; }
+.ach-tile:nth-child(5)  { animation: card-in 0.25s 0.10s ease both; }
+.ach-tile:nth-child(6)  { animation: card-in 0.25s 0.12s ease both; }
+.ach-tile:nth-child(7)  { animation: card-in 0.25s 0.14s ease both; }
+.ach-tile:nth-child(8)  { animation: card-in 0.25s 0.16s ease both; }
+.ach-tile:nth-child(9)  { animation: card-in 0.25s 0.18s ease both; }
+.ach-tile:nth-child(10) { animation: card-in 0.25s 0.20s ease both; }
+
+.cal-cell {
+  animation: card-in 0.2s ease both;
+}
+
+/* ---- Button micro-interactions ------------------------------------------- */
+
+.btn {
+  transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.btn:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+.btn--primary:hover {
+  box-shadow: 0 2px 14px color-mix(in srgb, var(--gold) 40%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.btn--danger:hover {
+  background: var(--danger-dim);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--danger) 25%, transparent);
+}
+
+.icon-btn {
+  transition: transform 0.1s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.icon-btn:hover {
+  color: var(--gold);
+}
+
+.icon-btn:active {
+  transform: scale(0.9);
+}
+
+/* ---- Task row interactions ----------------------------------------------- */
+
+.task-row {
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.task-row:active {
+  transform: scale(0.985);
+}
+
+.task-row--done {
+  animation: none;
+}
+
+/* ---- Card hover lift (desktop) ------------------------------------------- */
+
+@media (hover: hover) {
+  .settings-section,
+  .exp-trend-wrap,
+  .target-card,
+  .sleep-card,
+  .moment-card,
+  .profile-name-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .settings-section:hover,
+  .exp-trend-wrap:hover,
+  .target-card:hover,
+  .sleep-card:hover,
+  .moment-card:hover,
+  .profile-name-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    border-color: var(--gold-dim);
+  }
+}
+
+/* ---- Checkbox toggle animation ------------------------------------------- */
+
+.task-row input[type="checkbox"] {
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.task-row input[type="checkbox"]:checked {
+  animation: check-bounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes check-bounce {
+  0%  { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  70% { transform: scale(0.9); }
+  100%{ transform: scale(1); }
+}
+
+/* ---- Input focus glow ---------------------------------------------------- */
+
+.input,
+.notes-textarea,
+.moment-textarea,
+.task-form__time-wrap .input--time {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input:focus,
+.notes-textarea:focus,
+.moment-textarea:focus {
+  border-color: var(--gold-dim);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 15%, transparent);
+  outline: none;
+}
+
+/* ---- Chip toggle --------------------------------------------------------- */
+
+.chip {
+  transition: transform 0.1s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chip:active {
+  transform: scale(0.92);
+}
+
+.chip--on {
+  animation: chip-on 0.3s ease;
+}
+
+@keyframes chip-on {
+  0%  { transform: scale(1); }
+  50% { transform: scale(0.9); }
+  100%{ transform: scale(1); }
+}
+
+/* ---- Nav tab interactions ------------------------------------------------ */
+
+.nav-btn {
+  transition: color 0.2s ease;
+}
+
+.nav-btn:active svg {
+  transform: scale(0.85);
+  transition: transform 0.1s ease;
+}
+
+.nav-btn svg {
+  transition: transform 0.15s ease, filter 0.2s ease;
+}
+
+/* ---- Toast enhanced animation -------------------------------------------- */
+
+.toast {
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.toast--show {
+  transform: translateY(0) scale(1);
+}
+
+/* ---- Theme option press -------------------------------------------------- */
+
+.theme-option {
+  transition: transform 0.1s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-option:active {
+  transform: scale(0.97);
+}
+
+/* ---- Calendar cell press ------------------------------------------------- */
+
+.cal-cell:active {
+  transform: scale(0.88);
+}
+
+/* ---- Onboarding card entrance -------------------------------------------- */
+
+.onboarding-card {
+  animation: onboarding-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---- Level badge interactions -------------------------------------------- */
+
+.level-badge {
+  transition: box-shadow 0.3s ease, clip-path 0.25s ease, transform 0.2s ease;
+}
+
+.level-badge-link:hover .level-badge {
+  transform: scale(1.05);
+}
+
+/* ---- Progress ring animation --------------------------------------------- */
+
+.percent-ring__progress {
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---- EXP bar fill animation --------------------------------------------- */
+
+.exp-bar__fill {
+  animation: bar-fill-in 0.6s 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes bar-fill-in {
+  from { width: 0%; }
+}
+
+/* ---- Share card / badge hover -------------------------------------------- */
+
+.ach-tile {
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+@media (hover: hover) {
+  .ach-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .ach-tile--unlocked:hover {
+    border-color: var(--gold);
+  }
+}
+
+/* ---- Dialog entrance ----------------------------------------------------- */
+
+.dialog {
+  animation: dialog-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---- Backup banner pulse ------------------------------------------------- */
+
+.backup-banner {
+  animation: card-in 0.3s ease both, banner-glow 3s 0.5s ease-in-out infinite;
+}
+
+@keyframes banner-glow {
+  0%, 100% { box-shadow: none; }
+  50%      { box-shadow: 0 0 12px color-mix(in srgb, var(--danger) 20%, transparent); }
+}
+
+/* ---- Year tile entrance -------------------------------------------------- */
+
+.year-tile:nth-child(1)  { animation: card-in 0.2s 0.02s ease both; }
+.year-tile:nth-child(2)  { animation: card-in 0.2s 0.04s ease both; }
+.year-tile:nth-child(3)  { animation: card-in 0.2s 0.06s ease both; }
+.year-tile:nth-child(4)  { animation: card-in 0.2s 0.08s ease both; }
+.year-tile:nth-child(5)  { animation: card-in 0.2s 0.10s ease both; }
+.year-tile:nth-child(6)  { animation: card-in 0.2s 0.12s ease both; }
+.year-tile:nth-child(7)  { animation: card-in 0.2s 0.14s ease both; }
+.year-tile:nth-child(8)  { animation: card-in 0.2s 0.16s ease both; }
+.year-tile:nth-child(9)  { animation: card-in 0.2s 0.18s ease both; }
+.year-tile:nth-child(10) { animation: card-in 0.2s 0.20s ease both; }
+.year-tile:nth-child(11) { animation: card-in 0.2s 0.22s ease both; }
+.year-tile:nth-child(12) { animation: card-in 0.2s 0.24s ease both; }
+
+/* ---- Home greeting glow -------------------------------------------------- */
+
+.home-greeting {
+  animation: card-in 0.4s ease both;
+}
+
+/* ---- Report stat cards --------------------------------------------------- */
+
+.report-stat:nth-child(1) { animation: card-in 0.25s 0.04s ease both; }
+.report-stat:nth-child(2) { animation: card-in 0.25s 0.08s ease both; }
+.report-stat:nth-child(3) { animation: card-in 0.25s 0.12s ease both; }
+.report-stat:nth-child(4) { animation: card-in 0.25s 0.16s ease both; }
+.report-stat:nth-child(5) { animation: card-in 0.25s 0.20s ease both; }
+.report-stat:nth-child(6) { animation: card-in 0.25s 0.24s ease both; }
+
+/* ---- Tally bar fill animation ------------------------------------------- */
+
+.tally-bar__fill {
+  animation: bar-fill-in 0.5s 0.15s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ---- Completion meter fill ---------------------------------------------- */
+
+.completion-meter__fill {
+  animation: bar-fill-in 0.5s 0.1s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ---- Confetti (level-up / achievement unlocks) -------------------------- */
+
+.confetti-host {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -24px;
+  width: var(--c-w, 8px);
+  height: var(--c-sz, 6px);
+  border-radius: var(--c-rad, 2px);
+  opacity: 0;
+  animation: confetti-fall var(--c-dur, 1.4s) cubic-bezier(0.2, 0.6, 0.4, 1) var(--c-delay, 0s) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--c-tx, 40px), 108vh, 0) rotate(var(--c-rot, 540deg));
+    opacity: 0;
+  }
+}

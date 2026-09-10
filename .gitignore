@@ -1,0 +1,6 @@
+# Local install of the test harness's IndexedDB shim — keep out of any repo
+# upload/backup; recreate with `npm install` inside test/.
+node_modules/
+test/package-lock.json
+# Vercel CLI local project link
+.vercel/
