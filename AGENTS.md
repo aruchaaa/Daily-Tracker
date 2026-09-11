@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v58`). The manifest is
+  reference in `README.md` (currently `v59`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -1418,3 +1418,36 @@ juga ga ada"). No DB/schema/backup change (still DB v3, backup v4).
   linkall 37 ok/1 fail (app.js DOM-only); CSS braces balanced; no
   remaining `streak-chip`/`home.currentStreak` refs in `js/`/`css/`;
   README "What's new (cache v58)" added. CACHE_NAME → v58.
+
+### Lighthouse speed + security pass (SW v59)
+User request: make Lighthouse scores optimal — Best Practices showed a red
+exclamation and Performance measured 51–62 depending on the run. Diagnosis
+from a headless Lighthouse 13 run: FCP 2.6s, LCP 3.3s (element render
+delay ~4.9s — the LCP element painted almost 5s after the HTML arrived),
+Speed Index 8.2s, TBT ~3s. Root causes: (1) the ESM import chain loads
+serially under throttling (network tree showed `/` → `app.js` → `screenHome` →
+`achievements` → `streak` one file at a time — 37 module requests);
+(2) no CSP at all → the `csp-xss` audit is the red Best Practices flag
+(adding a working CSP satisfies it). Fixes (HTML/config/docs only; no
+DB/schema/backup change, no JS logic change, still DB v3 / backup v4):
+- **Module preload** (`index.html`): a `<link rel="modulepreload">` for
+  every module under `js/` (38 files incl. `app.js`) in the head, so the
+  browser fetches the whole graph in parallel instead of walking the import
+  waterfall. List kept in step with `js/` and the SW APP_SHELL. Pure
+  front-loading; no behavior change, zero dependencies.
+- **Content-Security-Policy** (`index.html` `<meta>` + `vercel.json`
+  header): strict policy — `default-src 'self'`; `script-src 'self'`
+  (no eval/inline handlers exist in the codebase — audited);
+  `style-src 'self' 'unsafe-inline'` (required: the app sets
+  `element.style.*` and `--gold` custom properties at runtime);
+  `connect-src 'self'`; `worker-src 'self'`; `manifest-src 'self'`;
+  `img-src 'self' data:`; `font-src 'self' data:`; `object-src 'none'`;
+  `base-uri 'none'`; `form-action 'none'`. The Vercel header additionally
+  carries `frame-ancestors 'none'` (not expressible in a meta tag); the
+  two combine (same policy, header strictly stronger).
+- **CACHE_NAME → v59** (shell changed); README "What's new (cache v59)"
+  + version line; AGENTS history entry; reference in this doc bumped.
+- Harness untouched (112 assertions still green; the changes are
+  HTML/header/docs only). Verified: verify5 ALL VERIFIED (112); linkall
+  37 ok/1 fail (app.js DOM-only); manifest parses as JSON; Lighthouse
+  re-run after deploy to confirm LCP/FCP/TBT + Best Practices gains.

@@ -9,6 +9,13 @@
 <meta name="author" content="Daily Tracker" />
 <meta name="theme-color" content="#161227" />
 
+<!-- Content-Security-Policy (meta flavor). The strict header version on the
+     live host (vercel.json) also carries frame-ancestors 'none', which a meta
+     tag cannot express. Inline style attributes are allowed because the app
+     sets element.style.* / custom properties at runtime (no other inline
+     script or eval anywhere in the codebase). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+
 <!-- Open Graph -->
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Daily Tracker" />
@@ -35,6 +42,49 @@
 <link rel="stylesheet" href="css/main.css" />
 <link rel="stylesheet" href="css/components.css" />
 <link rel="stylesheet" href="css/animations.css" />
+
+<!-- Preload the whole ESM graph so the browser fetches modules in parallel
+     instead of walking the import waterfall (the previous cost driver for
+     FCP/LCP in Lighthouse). Keep this list in step with js/ and the SW
+     APP_SHELL. Order below mirrors APP_SHELL. -->
+<link rel="modulepreload" href="js/app.js" />
+<link rel="modulepreload" href="js/utils.js" />
+<link rel="modulepreload" href="js/db/db.js" />
+<link rel="modulepreload" href="js/db/tasksRepo.js" />
+<link rel="modulepreload" href="js/db/completionsRepo.js" />
+<link rel="modulepreload" href="js/db/metaRepo.js" />
+<link rel="modulepreload" href="js/db/sleepRepo.js" />
+<link rel="modulepreload" href="js/db/notesRepo.js" />
+<link rel="modulepreload" href="js/core/expEngine.js" />
+<link rel="modulepreload" href="js/core/dailyTracker.js" />
+<link rel="modulepreload" href="js/core/history.js" />
+<link rel="modulepreload" href="js/core/streak.js" />
+<link rel="modulepreload" href="js/core/monthlyReport.js" />
+<link rel="modulepreload" href="js/core/profileStats.js" />
+<link rel="modulepreload" href="js/core/expTrend.js" />
+<link rel="modulepreload" href="js/core/sleepTrend.js" />
+<link rel="modulepreload" href="js/core/theme.js" />
+<link rel="modulepreload" href="js/core/taskStats.js" />
+<link rel="modulepreload" href="js/core/schedule.js" />
+<link rel="modulepreload" href="js/core/repeatDays.js" />
+<link rel="modulepreload" href="js/core/weeklySummary.js" />
+<link rel="modulepreload" href="js/core/notifications.js" />
+<link rel="modulepreload" href="js/core/achievements.js" />
+<link rel="modulepreload" href="js/core/sounds.js" />
+<link rel="modulepreload" href="js/core/i18n.js" />
+<link rel="modulepreload" href="js/ui/components.js" />
+<link rel="modulepreload" href="js/ui/toast.js" />
+<link rel="modulepreload" href="js/ui/installPrompt.js" />
+<link rel="modulepreload" href="js/ui/confetti.js" />
+<link rel="modulepreload" href="js/ui/screenHome.js" />
+<link rel="modulepreload" href="js/ui/screenTasks.js" />
+<link rel="modulepreload" href="js/ui/screenTaskDetail.js" />
+<link rel="modulepreload" href="js/ui/screenProfile.js" />
+<link rel="modulepreload" href="js/ui/screenHistory.js" />
+<link rel="modulepreload" href="js/ui/screenReport.js" />
+<link rel="modulepreload" href="js/ui/screenSettings.js" />
+<link rel="modulepreload" href="js/backup/backupManager.js" />
+<link rel="modulepreload" href="js/backup/csvExport.js" />
 </head>
 <body>
 
