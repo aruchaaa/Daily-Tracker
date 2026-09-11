@@ -247,6 +247,10 @@ assert(
 );
 assert(i18n.t("ach.streak7") === "On Fire" && i18n.t("ach.level5") === "Rising Star", "digit-suffix badges translate in EN (ach.streak7 / ach.level5)");
 
+// SW v57: EN day-short names are 3 letters too (matches ID), so the
+// repeat picker chips and History calendar header are uniform.
+assert(i18n.dayShortName(0) === "Sun" && i18n.dayShortName(1) === "Mon" && i18n.dayShortName(4) === "Thu", "EN short day names are 3-letter (Sun/Mon/Thu)");
+
 // ---- Hard-tier badges ----------------------------------------------------------
 await metaRepo.setDailyTargetExp(10);
 const pad2 = (n) => String(n).padStart(2, "0");

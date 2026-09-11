@@ -689,7 +689,7 @@ const dayFullNames = {
 };
 
 const dayShortNames = {
-  en: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
+  en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
   id: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
 };
 

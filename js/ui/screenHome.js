@@ -45,7 +45,7 @@ export async function renderHome(container, { justLeveledUp = false, justChecked
     buildGreeting(charName),
     buildYesterdayLine(yesterdayRecord),
     buildLevelPanel(progress, { clickable: true, levelUp: justLeveledUp }),
-    streak > 0 ? buildStreakChip(streak) : null,
+    buildStreakChip(streak),
     buildTargetCard(state.totalExpToday, dailyTarget, container),
     el("h2", { class: "section-title", text: t("home.todayTasks") }),
     buildTaskList(state, progress, container, justCheckedId),
@@ -173,9 +173,11 @@ function buildYesterdayLine(record) {
 }
 
 function buildStreakChip(streak) {
+  const n = Number(streak);
+  if (!Number.isFinite(n) || n < 1) return null;
   return el("div", { class: "streak-chip" }, [
     el("span", { class: "streak-chip__icon", text: "\uD83D\uDD25" }),
-    el("span", { class: "streak-chip__text", text: t("home.currentStreak", { n: streak }) }),
+    el("span", { class: "streak-chip__text", text: t("home.currentStreak", { n: Math.round(n) }) }),
   ]);
 }
 

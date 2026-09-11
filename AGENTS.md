@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v56`). The manifest is
+  reference in `README.md` (currently `v57`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -597,7 +597,7 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **112** (hard-tier seeded 503-day range +
+- Current assertion count is **113** (hard-tier seeded 503-day range +
   backfilled 40-day tail, the 12-assertion day-record block added at SW
   v36, the 2-assertion badge-i18n regression block added at SW v44, the
   17-assertion install block added at SW v55: the Install App button
@@ -611,7 +611,9 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   clamp on day records, the five August 2026 `daysTaskExistedInRange`
   denominators, the Monday-bucket weekly summary + best-day tests,
   all-history CSV, the Tasks repeat-picker, the Report all-history button +
-  `week-summary` section, and the Home yesterday pill + streak chip). Don't
+  `week-summary` section, and the Home yesterday pill + streak chip, and
+  the 1-assertion EN 3-letter short-day-name regression block added at SW
+  v57). Don't
   assert exact intra-group row order in the day-record tests: sortOrder
   uses `Date.now()` so rapid `createTask` calls can tie, and `getAllTasks`
   tie-breaks by uuid key order — assert membership/sets and rely on the
@@ -1354,3 +1356,43 @@ Full feature pass; backup bumped v3 → v4, DB schema unchanged (v3).
 - Verified: `node --check` all edited JS; verify5 ALL VERIFIED (112);
   linkall 37 ok/1 fail (app.js DOM-only); CSS brace balance; i18n scan.
   CACHE_NAME → v56.
+
+### UI polish pass (SW v57)
+User-reported fixes after the v56 release; no DB/schema/backup change
+(still DB v3, backup v4).
+- **Repeat picker single row** (`css/components.css`): `.repeat-picker`
+  `flex-wrap: wrap → nowrap` (gap 6→4px) and `.repeat-picker__day`
+  `flex: 0 0 auto; min-width: 44px → flex: 1 1 0; min-width: 0; padding:
+  5px 6px` — the seven chips now share the row equally on any width
+  instead of wrapping to a second line on small phones.
+- **3-letter EN day names** (`core/i18n.js`): `dayShortNames.en`
+  `["Su","Mo",...] → ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]`, matching
+  the ID set's 3-letter width so picker chips and the History calendar
+  header look uniform in both languages.
+- **Report print-button spacing** (`ui/screenReport.js` +
+  `css/components.css`): the PDF button is wrapped in a centered
+  `.report-actions` row (`margin: 16px 0 20px`) so it's no longer flush
+  against the Weekly Breakdown section.
+- **Weekly breakdown excluded from PDF** (`css/main.css` print block):
+  `#report-print-area .week-summary { display: none !important }` restores
+  the pre-v56 PDF shape (breakdown stays on-screen only).
+- **Month dropdown arrow centered** (`css/components.css`):
+  `.report-controls input[type="month"]` gets `height: 38px; display:
+  inline-flex; align-items: center` + `::-webkit-calendar-picker-indicator
+  { margin-left: auto }` so the calendar indicator sits vertically
+  centered in Chromium.
+- **Streak chip hardened** (`ui/screenHome.js`): `buildStreakChip` now
+  returns `null` unless the streak is a finite number ≥ 1 and interpolates
+  `Math.round(n)` — no "null"/"NaN"/"undefined" text can ever render in
+  the Level→Daily-Target gap (live code was already null-safe; this is a
+  belt-and-suspenders guarantee plus the cache bump flushes stale mixed
+  modules on the user's device).
+- **CSV unchanged**: `.csv` can't embed text alignment (the viewer
+  decides); the export was already canonical (4 columns, escaped fields,
+  zero-padded HH:MM, BOM, sorted). Documented to the user; no code change.
+- **Harness** (`test/verify5.mjs`): +1 assertion — EN `dayShortName`
+  returns Sun/Mon/Thu. 112 → **113**, ALL VERIFIED. linkall still
+  "37 ok / 1 fail" (app.js DOM-only).
+- Verified: `node --check` all edited JS; verify5 ALL VERIFIED (113);
+  linkall 37 ok/1 fail; CSS braces balanced; README "What's new (cache
+  v57)" added. CACHE_NAME → v57.

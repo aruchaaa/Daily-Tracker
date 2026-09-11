@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v56`. The app also auto-reloads itself once when a newer
+`daily-tracker-v57`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -253,6 +253,20 @@ you're curious, but in short: your data is safe across this update.
 - **Backup format v4**: backups now carry `repeatDays` and `deactivatedAt`;
   older v3 backups still import (legacy rows gain the "every day" default).
 - New core modules `repeatDays.js` and `weeklySummary.js` (precached).
+
+## What's new (cache v57)
+
+- **Repeat picker fits one row**: the Mon–Sun chips now share the width
+  evenly on any screen instead of wrapping to two lines on small phones,
+  and English day labels became 3-letter (Sun/Mon/Tue…), matching the
+  Indonesian set.
+- **Home streak chip hardened**: it now only renders for a real positive
+  integer streak, so no stray "null"/"NaN" text can ever appear between
+  the Level and Daily Target boxes.
+- **Report polish**: the "Export as PDF" button sits in its own centered
+  row with proper spacing above the Weekly Breakdown, the month dropdown's
+  calendar arrow is vertically centered, and the exported PDF no longer
+  contains the weekly breakdown panel (it's on-screen only).
 
 ## What's new (cache v55)
 

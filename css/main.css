@@ -433,6 +433,12 @@ a {
     padding: 30px 26px;
   }
 
+  /* Weekly breakdown is an on-screen-only panel (introduced SW v56); the
+     exported PDF keeps the pre-v56 report shape. */
+  #report-print-area .week-summary {
+    display: none !important;
+  }
+
   #history-print-area {
     display: block !important;
     background: #fbf7ee;

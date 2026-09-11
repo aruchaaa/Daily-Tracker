@@ -414,16 +414,18 @@
   color: var(--ink-faint);
 }
 
-/* Per-task weekly repeat picker: one chip per weekday (Sun..Sat). */
+/* Per-task weekly repeat picker: one chip per weekday (Sun..Sat). Always a
+   single row: chips share the available width so all seven fit any screen. */
 .repeat-picker {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-wrap: nowrap;
+  gap: 4px;
 }
 
 .repeat-picker__day {
-  flex: 0 0 auto;
-  min-width: 44px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 5px 6px;
   text-align: center;
 }
 
@@ -734,6 +736,24 @@
 
 .report-controls .input {
   flex: 1;
+}
+
+.report-controls input[type="month"] {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.report-controls input[type="month"]::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+}
+
+/* Centered action buttons under the report result (e.g. "Export as PDF" —
+   separated from the breakdown sections below it). */
+.report-actions {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 20px;
 }
 
 .report-header {

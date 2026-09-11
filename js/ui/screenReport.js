@@ -165,7 +165,7 @@ async function loadReport(yearMonth, resultArea) {
     text: t("report.generated", { date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) }),
   });
 
-  resultArea.append(header, completionMeter, grid, printBtn, buildWeeklySection(weekSummary), buildTaskTallySection(report.taskTally), buildMomentSection(yearMonth, momentText), footer);
+  resultArea.append(header, completionMeter, grid, el("div", { class: "report-actions" }, [printBtn]), buildWeeklySection(weekSummary), buildTaskTallySection(report.taskTally), buildMomentSection(yearMonth, momentText), footer);
 }
 
 /** Per-week EXP/done bars (Monday-start, clipped to the month) plus the
