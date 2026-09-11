@@ -39,6 +39,44 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Daily Tracker" />
 
+<!-- Critical inline CSS for the splash screen. The splash is the first
+     paint, so inlining its styles lets it render the moment HTML arrives
+     instead of waiting for main.css — a direct FCP/Speed-Index win. This
+     block sits BEFORE the stylesheets, so the live rules override it once
+     loaded; colors hardcode the default Stat Sheet palette so they match
+     before the theme boots. -->
+<style>
+  html, body { background: #161227; }
+  .splash {
+    position: fixed; inset: 0; z-index: 999;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 14px;
+    background: #161227;
+    background-image: radial-gradient(circle at 50% 38%, rgba(232, 179, 85, 0.08) 0%, transparent 55%);
+  }
+  .splash__icon { width: 96px; height: 96px; opacity: 0;
+    animation: splash-icon-in 0.7s 0.1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+  .splash__title { font-family: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+    font-size: 20px; font-weight: 700; color: #e8b355; letter-spacing: 0.1em;
+    text-transform: uppercase; opacity: 0;
+    animation: splash-fade-up 0.5s 0.45s ease forwards; }
+  .splash__sub { font-size: 12px; color: #9c93b8; letter-spacing: 0.04em; opacity: 0;
+    animation: splash-fade-up 0.4s 0.65s ease forwards; }
+  .splash__bar { width: 48px; height: 3px; border-radius: 2px; background: #3b3158;
+    overflow: hidden; margin-top: 8px; opacity: 0;
+    animation: splash-fade-up 0.3s 0.8s ease forwards; }
+  .splash__bar::after { content: ""; display: block; width: 50%; height: 100%;
+    background: #e8b355; border-radius: 2px; animation: splash-slide 1s ease-in-out infinite; }
+  .splash--exit { animation: splash-exit 0.45s ease forwards; }
+  @keyframes splash-icon-in { from { opacity: 0; transform: scale(0.4) rotate(-12deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+  @keyframes splash-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes splash-slide { 0% { transform: translateX(-110%); } 50% { transform: translateX(120%); } 100% { transform: translateX(300%); } }
+  @keyframes splash-exit { from { opacity: 1; } to { opacity: 0; pointer-events: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+
 <link rel="stylesheet" href="css/main.css" />
 <link rel="stylesheet" href="css/components.css" />
 <link rel="stylesheet" href="css/animations.css" />
