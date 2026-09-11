@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v60`. The app also auto-reloads itself once when a newer
+`daily-tracker-v61`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,13 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v61)
+
+- **Report export rows tidied**: the two CSV buttons now live on their own
+  row below the month picker + Generate, each taking half the width so they
+  never widen or overflow the column. Labels may wrap to two lines
+  ("Export This Month (CSV)" / "Export All Time (CSV)") and stay centered.
 
 ## What's new (cache v60)
 

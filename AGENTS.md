@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v60`). The manifest is
+  reference in `README.md` (currently `v61`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -1503,3 +1503,29 @@ No DB/schema/backup change (still DB v3, backup v4).
 - Verified: `node --check` on edited JS; verify5 ALL VERIFIED (112);
   linkall 37 ok/1 fail (app.js DOM-only); CSS braces balanced. CACHE_NAME
   → v60.
+
+### Report export buttons on their own row (SW v61)
+User follow-up to v60: the `white-space: nowrap` constraint made the two
+export buttons widen ("teks tombol eksport malah melebar") instead of
+fitting; user approved two-line labels and a full tidy-up. No DB/schema/
+backup change (still DB v3, backup v4).
+- **Two-row layout** (`js/ui/screenReport.js` + `css/components.css`): the
+  CSV buttons moved out of the month-picker row into a new `.report-export-row`
+  below it — a `width: 100%` flex row whose two buttons each get
+  `flex: 1 1 0` (exactly half the column, `min-width: 0`), so neither can
+  ever widen or overflow the column regardless of label length.
+- **Row 1 keeps its symmetry**: the month dropdown (`flex: 1 1 140px`,
+  `min-width: 0`) and Generate (`.report-controls .btn--primary`, `height:
+  40px`) stay side by side with matching heights; the picker-arrow fix from
+  v60 is unchanged.
+- **Two lines allowed**: export buttons drop `white-space: nowrap` for
+  `white-space: normal` at `font-size: 13px`, `line-height: 1.3`,
+  `padding: 8px 10px`, vertically/horizontally centered with
+  `text-align: center` — long labels wrap neatly in their half-width box.
+- **Harness** (`test/verify5.mjs`): texts unchanged, both export-button
+  assertions and the month/Generate rendering still pass — `findByText`
+  scans any nesting, so the new wrapper div doesn't matter. Count **112**,
+  ALL VERIFIED.
+- Verified: `node --check` on edited JS; verify5 ALL VERIFIED (112);
+  linkall 37 ok/1 fail (app.js DOM-only); CSS braces balanced. CACHE_NAME
+  → v61.

@@ -69,7 +69,11 @@ export async function renderReport(container) {
   container.append(
     el("h2", { class: "section-title", text: t("report.title") }),
     el("h3", { class: "profile-subheading", text: t("report.monthlyReport") }),
-    el("div", { class: "report-controls" }, [monthInput, generateBtn, csvBtn, allCsvBtn]),
+    el("div", { class: "report-controls" }, [
+      monthInput,
+      generateBtn,
+      el("div", { class: "report-export-row" }, [csvBtn, allCsvBtn]),
+    ]),
     resultArea,
     await buildYearGrid(now.getFullYear())
   );
