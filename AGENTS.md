@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v59`). The manifest is
+  reference in `README.md` (currently `v60`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -1474,3 +1474,32 @@ only; no DB/schema/backup change, still DB v3 / backup v4):
   FCP ~2.2–2.4s, LCP ~2.6–2.9s (was 3.3s), TBT ~2.0–2.5s (was ~3s),
   CLS 0, a11y 95–100, SEO 100. Performance totals stay 43–64 depending on
   run — machine/run variance dominates the remaining spread.
+
+### Report dropdown symmetry + reworded export buttons (SW v60)
+User request: on Report, the month dropdown beside Generate was a slightly
+different height than the buttons and its native picker arrow read as a
+dark-on-dark smudge; and the export buttons' labels didn't match reality.
+No DB/schema/backup change (still DB v3, backup v4).
+- **Height symmetry** (`css/components.css`): the month input and every
+  `.report-controls .btn` share an explicit `height: 40px`. Buttons become
+  compact inline-flex centers (`padding: 0 12px; font-size: 13px;
+  white-space: nowrap`) so the longer new labels fit the row on one line;
+  the input adds `min-width: 0` to its `flex: 1` so the row can't blow out
+  on narrow widths.
+- **Neat picker arrow**: the arrow is sized 15px, right-aligned via
+  `margin-left: auto` (input keeps `display: flex; align-items: center`),
+  with a subtle `opacity` hover ramp instead of the UA default. New
+  `--picker-color-scheme` token in `css/main.css` (Stat Sheet/Neon =
+  `dark`, Adventurer's Log = `light`, `:root` default `dark`) wired into
+  `color-scheme` on the input, so Chromium draws a light arrow on the dark
+  themes and dark ink on parchment — no more dark-on-dark glyph.
+- **Export labels** (`core/i18n.js`): `report.exportCsv` → "Export This
+  Month (CSV)" ("Export Bulan Ini (CSV)"), `report.exportAllCsv` → "Export
+  All Time (CSV)" ("Export Semua Waktu (CSV)").
+- **Harness** (`test/verify5.mjs`): both export-button assertions updated to
+  the new EN labels ("Export This Month (CSV)" and "Export All Time (CSV)")
+  — `findByText` matches by substring. Count unchanged at **112**, ALL
+  VERIFIED.
+- Verified: `node --check` on edited JS; verify5 ALL VERIFIED (112);
+  linkall 37 ok/1 fail (app.js DOM-only); CSS braces balanced. CACHE_NAME
+  → v60.

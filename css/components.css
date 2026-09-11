@@ -736,16 +736,45 @@
 
 .report-controls .input {
   flex: 1;
+  min-width: 0;
 }
 
+/* Month dropdown keeps the same height (40px) as the neighbouring buttons so
+   the row reads symmetrical. Flex centering lets the native picker arrow sit
+   at the right edge via margin-left: auto, and gives it a theme-aware light/
+   dark glyph so it always looks crisp on the surface it sits on. */
 .report-controls input[type="month"] {
-  height: 38px;
-  display: inline-flex;
+  height: 40px;
+  padding: 0 10px;
+  display: flex;
   align-items: center;
+  color-scheme: var(--picker-color-scheme, dark);
 }
 
 .report-controls input[type="month"]::-webkit-calendar-picker-indicator {
+  width: 15px;
+  height: 15px;
   margin-left: auto;
+  cursor: pointer;
+  opacity: 0.72;
+  transition: opacity 0.08s ease;
+}
+
+.report-controls input[type="month"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Export buttons: compact so the longer "Export All Time (CSV)" label fits
+   on one line beside the month picker. */
+.report-controls .btn {
+  height: 40px;
+  padding: 0 12px;
+  font-size: 13px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Centered action buttons under the report result (e.g. "Export as PDF" —

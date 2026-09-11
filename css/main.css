@@ -60,6 +60,11 @@
 
   --nav-height: 64px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Native form-control chrome (calendar picker drop-down arrow) renders a
+     light or dark glyph depending on this. Stat Sheet + Neon are dark, so
+     the arrow appears bright; parchment flips it back to dark ink. */
+  --picker-color-scheme: dark;
 }
 
 /* Explicit block for the default theme too (not just relying on :root as an
@@ -105,6 +110,8 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.18);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.22);
   --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.3);
+
+  --picker-color-scheme: dark;
 
   --bg-texture: repeating-linear-gradient(
     45deg,
@@ -155,6 +162,8 @@
 
   --font-ui: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
   --font-stat: Georgia, "Iowan Old Style", "Times New Roman", serif;
+
+  --picker-color-scheme: light;
 }
 
 /* ---- Neon Circuit: near-black terminal, cyan/magenta, sharp edges ---- */
@@ -192,6 +201,8 @@
     Consolas, "Liberation Mono", monospace;
   --font-stat: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono",
     Consolas, "Liberation Mono", monospace;
+
+  --picker-color-scheme: dark;
 }
 
 * {

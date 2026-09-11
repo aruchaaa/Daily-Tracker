@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v59`. The app also auto-reloads itself once when a newer
+`daily-tracker-v60`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,18 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v60)
+
+- **Report controls tidied**: the month dropdown now shares the exact 40px
+  height of the Generate button beside it, so the row reads symmetrical.
+  The picker arrow is sized, right-aligned, and theme-aware (light glyph on
+  the dark Stat Sheet / Neon themes, dark ink on Adventurer's Log) so it
+  stays crisp on every theme instead of the default dark-on-dark smudge.
+- **Export labels reworded** (Report): the per-month button now reads
+  "Export This Month (CSV)" and the all-history one "Export All Time (CSV)"
+  (Indonesian: "Export Bulan Ini (CSV)" / "Export Semua Waktu (CSV)");
+  button text is a little smaller so both labels fit the row on one line.
 
 ## What's new (cache v59)
 
