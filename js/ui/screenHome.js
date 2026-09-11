@@ -2,10 +2,8 @@ import * as dailyTracker from "../core/dailyTracker.js";
 import * as metaRepo from "../db/metaRepo.js";
 import * as tasksRepo from "../db/tasksRepo.js";
 import * as sleepRepo from "../db/sleepRepo.js";
-import * as completionsRepo from "../db/completionsRepo.js";
 import { getLevelProgress, getLevel } from "../core/expEngine.js";
 import { evaluateAchievements, achievementKey } from "../core/achievements.js";
-import { calculateCurrentStreak } from "../core/streak.js";
 import { getDayRecord } from "../core/history.js";
 import { playTick, playUncheck, playSave, playError, playLevelUp } from "../core/sounds.js";
 import { getTodayDateString, formatDate } from "../utils.js";
@@ -25,19 +23,17 @@ export async function renderHome(container, { justLeveledUp = false, justChecked
   const yesterdayDate = new Date();
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
   const yesterdayStr = formatDate(yesterdayDate);
-  const [allTasks, lifetimeExp, lastBackupAt, sleepHours, dailyTarget, charName, allCompletions] = await Promise.all([
+  const [allTasks, lifetimeExp, lastBackupAt, sleepHours, dailyTarget, charName] = await Promise.all([
     tasksRepo.getAllTasks(),
     metaRepo.getLifetimeExp(),
     metaRepo.getLastBackupAt(),
     sleepRepo.getSleepHours(today),
     metaRepo.getDailyTargetExp(),
     metaRepo.getCharacterName(),
-    completionsRepo.getAllCompletions(),
   ]);
   const state = await dailyTracker.getTodayState(allTasks);
   const progress = getLevelProgress(lifetimeExp);
   const banner = buildBackupBanner(lastBackupAt, lifetimeExp, allTasks.length, container);
-  const streak = calculateCurrentStreak(allCompletions.map((c) => c.date), today);
   const yesterdayRecord = await getDayRecord(yesterdayStr);
 
   container.append(
@@ -45,7 +41,6 @@ export async function renderHome(container, { justLeveledUp = false, justChecked
     buildGreeting(charName),
     buildYesterdayLine(yesterdayRecord),
     buildLevelPanel(progress, { clickable: true, levelUp: justLeveledUp }),
-    buildStreakChip(streak),
     buildTargetCard(state.totalExpToday, dailyTarget, container),
     el("h2", { class: "section-title", text: t("home.todayTasks") }),
     buildTaskList(state, progress, container, justCheckedId),
@@ -170,15 +165,6 @@ function buildYesterdayLine(record) {
   else if (exp > 0) text = t("home.yesterdaySummary", { done, total, exp });
   else text = t("home.yesterdayZero", { done, total });
   return el("div", { class: "home-yesterday" }, [el("span", { class: "home-yesterday__text", text })]);
-}
-
-function buildStreakChip(streak) {
-  const n = Number(streak);
-  if (!Number.isFinite(n) || n < 1) return null;
-  return el("div", { class: "streak-chip" }, [
-    el("span", { class: "streak-chip__icon", text: "\uD83D\uDD25" }),
-    el("span", { class: "streak-chip__text", text: t("home.currentStreak", { n: Math.round(n) }) }),
-  ]);
 }
 
 function buildTaskList(state, progress, container, justCheckedId) {

@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v57`. The app also auto-reloads itself once when a newer
+`daily-tracker-v58`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -253,6 +253,12 @@ you're curious, but in short: your data is safe across this update.
 - **Backup format v4**: backups now carry `repeatDays` and `deactivatedAt`;
   older v3 backups still import (legacy rows gain the "every day" default).
 - New core modules `repeatDays.js` and `weeklySummary.js` (precached).
+
+## What's new (cache v58)
+
+- **Home streak chip removed**: the small "N-day streak" chip between the
+  Level and Daily Target boxes is gone (user request — it was minor and
+  the gap stays clean). The "Yesterday" recap pill on Home stays.
 
 ## What's new (cache v57)
 

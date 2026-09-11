@@ -40,7 +40,6 @@ const translations = {
     "home.yesterdaySummary": "Yesterday: {done}/{total} done (+{exp} EXP)",
     "home.yesterdayZero": "Yesterday: {done}/{total} done \u2014 let's get moving today!",
     "home.yesterdayNoTasks": "Yesterday: no tasks scheduled.",
-    "home.currentStreak": "{n}-day streak",
 
     "onboarding.title": "Welcome to Daily Tracker",
     "onboarding.desc": "Build habits by completing tasks and earning experience. Level up your character as you go.",
@@ -356,7 +355,6 @@ const translations = {
     "home.yesterdaySummary": "Kemarin: {done}/{total} selesai (+{exp} EXP)",
     "home.yesterdayZero": "Kemarin: {done}/{total} selesai \u2014 ayo gas hari ini!",
     "home.yesterdayNoTasks": "Kemarin: nggak ada tugas.",
-    "home.currentStreak": "Streak {n} hari",
 
     "onboarding.title": "Selamat Datang di Daily Tracker",
     "onboarding.desc": "Bangun kebiasaan baru lewat tugas harian. Kumpulkan EXP, tingkatkan level karaktermu!",

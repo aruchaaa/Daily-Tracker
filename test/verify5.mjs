@@ -454,11 +454,10 @@ const allCsv = csvExport.buildAllCSV([
 assert(allCsv.includes("Date,Task Name,EXP Earned,Time"), "all-history CSV has the standard header");
 assert(allCsv.includes("2026-08-20") && allCsv.includes("Gym"), "all-history CSV contains completion rows");
 
-// ---- Home recap + streak chip ----------------------------------------------------------
+// ---- Home recap ---------------------------------------------------------------------
 c = new FakeNode("div");
 await screenHome.renderHome(c);
 assert(Boolean(findNode(c, "home-yesterday")), "Home shows the always-visible yesterday recap pill");
-assert(Boolean(findNode(c, "streak-chip")), "Home shows the current-streak chip when a streak is active");
 
 console.log(fail === 0 ? "ALL VERIFIED" : `${fail} FAILURES`);
 process.exit(fail ? 1 : 0);

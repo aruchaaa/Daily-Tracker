@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v57`). The manifest is
+  reference in `README.md` (currently `v58`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -597,7 +597,7 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **113** (hard-tier seeded 503-day range +
+- Current assertion count is **112** (hard-tier seeded 503-day range +
   backfilled 40-day tail, the 12-assertion day-record block added at SW
   v36, the 2-assertion badge-i18n regression block added at SW v44, the
   17-assertion install block added at SW v55: the Install App button
@@ -611,7 +611,7 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   clamp on day records, the five August 2026 `daysTaskExistedInRange`
   denominators, the Monday-bucket weekly summary + best-day tests,
   all-history CSV, the Tasks repeat-picker, the Report all-history button +
-  `week-summary` section, and the Home yesterday pill + streak chip, and
+  `week-summary` section, and the Home yesterday pill, and
   the 1-assertion EN 3-letter short-day-name regression block added at SW
   v57). Don't
   assert exact intra-group row order in the day-record tests: sortOrder
@@ -1396,3 +1396,25 @@ User-reported fixes after the v56 release; no DB/schema/backup change
 - Verified: `node --check` all edited JS; verify5 ALL VERIFIED (113);
   linkall 37 ok/1 fail; CSS braces balanced; README "What's new (cache
   v57)" added. CACHE_NAME → v57.
+
+### Home streak chip removed (SW v58)
+User request after the v57 polish pass: "the null between Level and Daily
+Target" persisted, and on explanation that it's the v56 current-streak
+chip, the user asked to remove it entirely ("ilangin aja, kan sebelumnya
+juga ga ada"). No DB/schema/backup change (still DB v3, backup v4).
+- **`ui/screenHome.js`**: deleted `buildStreakChip`, its `renderHome` call
+  and `streak` variable, the `allCompletions` fetch (it fed only the chip),
+  and now-unused imports `calculateCurrentStreak` (streak.js) +
+  `completionsRepo`. Home's order is now greeting → yesterday pill → level
+  panel → daily-target card.
+- **CSS**: `.streak-chip` / `.streak-chip__text` blocks deleted from
+  `components.css`.
+- **i18n**: `home.currentStreak` removed (EN + ID); `detail.currentStreak`
+  (Task Detail, a separate feature) untouched.
+- **Harness** (`test/verify5.mjs`): the "current-streak chip shown" assert
+  deleted → 113 → **112**. All other modules still import `streak.js`
+  (`taskStats.js`), so it stays in APP_SHELL.
+- Verified: `node --check` all edited JS; verify5 ALL VERIFIED (112);
+  linkall 37 ok/1 fail (app.js DOM-only); CSS braces balanced; no
+  remaining `streak-chip`/`home.currentStreak` refs in `js/`/`css/`;
+  README "What's new (cache v58)" added. CACHE_NAME → v58.

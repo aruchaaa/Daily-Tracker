@@ -1352,26 +1352,6 @@
   color: var(--ink-dim);
 }
 
-/* Current-streak chip under the level panel (hidden while streak is 0). */
-.streak-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 6px 14px;
-  width: max-content;
-  background: var(--bg-raised);
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
-}
-
-.streak-chip__text {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--gold);
-  font-family: var(--font-stat);
-}
-
 /* ============================== Daily target card =========================== */
 
 .target-card {
