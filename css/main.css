@@ -335,9 +335,7 @@ a {
   height: calc(var(--nav-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
   display: flex;
-  background: color-mix(in srgb, var(--bg-raised) 88%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--bg-raised) 96%, transparent);
   border-top: 1px solid var(--panel-border-soft);
   max-width: 480px;
   margin: 0 auto;
