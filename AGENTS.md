@@ -1435,6 +1435,17 @@ DB/schema/backup change, no JS logic change, still DB v3 / backup v4):
   browser fetches the whole graph in parallel instead of walking the import
   waterfall. List kept in step with `js/` and the SW APP_SHELL. Pure
   front-loading; no behavior change, zero dependencies.
+- **Critical splash CSS inlined** (`index.html` `<style>` block before the
+  stylesheets): the splash screen + base `html,body` background now render
+  from inline CSS (hardcoded Stat Sheet palette, overridden by the real
+  stylesheets once they load) so first paint no longer waits on
+  `main.css`.
+- **Lazy screen loading** (`js/app.js`): the six screens + task detail are
+  no longer static imports — `router()` does a dynamic `await import()`
+  per route, deriving the `renderX` export name from the file name
+  (`screenHome.js` → `renderHome`). Boot executes only the current screen's
+  module graph; everything else is still fetched upfront via modulepreload.
+  Dynamic `import()` is allowed by the CSP (`script-src 'self'`).
 - **Content-Security-Policy** (`index.html` `<meta>` + `vercel.json`
   header): strict policy — `default-src 'self'`; `script-src 'self'`
   (no eval/inline handlers exist in the codebase — audited);

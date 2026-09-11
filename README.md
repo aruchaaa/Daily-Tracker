@@ -237,6 +237,16 @@ you're curious, but in short: your data is safe across this update.
   instead of walking the import chain one file at a time — the biggest
   remaining FCP/LCP/TBT cost in audits. Pure front-loading, no behavior
   change, zero dependencies.
+- **Critical CSS inlined**: the splash screen's styles (plus the base
+  page background) now live in a small `<style>` block in the HTML head, so
+  the first paint happens the moment the HTML arrives instead of waiting on
+  `main.css`. The real stylesheets still load and override it — no behavior
+  or theme change, just an earlier first paint.
+- **Lazy screenshot loading**: `app.js` no longer statically imports all
+  six screens + task detail. Screens are now `import()`-ed per route, so
+  boot only *executes* the JS for the current screen (the modules are still
+  fetched in parallel via the preload list). Cuts startup long tasks /
+  TBT; navigating still loads each screen on demand.
 - **Security headers**: a strict Content-Security-Policy is now enforced —
   an inline `<meta>` tag plus a `vercel.json` header that also carries
   `frame-ancestors 'none'` (meta can't express that one). No eval, no

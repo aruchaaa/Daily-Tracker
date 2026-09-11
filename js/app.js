@@ -1,10 +1,3 @@
-import { renderHome } from "./ui/screenHome.js";
-import { renderTasks } from "./ui/screenTasks.js";
-import { renderProfile } from "./ui/screenProfile.js";
-import { renderHistory } from "./ui/screenHistory.js";
-import { renderReport } from "./ui/screenReport.js";
-import { renderSettings } from "./ui/screenSettings.js";
-import { renderTaskDetail } from "./ui/screenTaskDetail.js";
 import { loadAndApplyTheme } from "./core/theme.js";
 import { playNav } from "./core/sounds.js";
 import { scheduleTodayReminders } from "./core/notifications.js";
@@ -13,14 +6,32 @@ import { captureInstallPrompt, onInstallPromptReady } from "./ui/installPrompt.j
 import { setLang as setI18nLang, t } from "./core/i18n.js";
 import * as metaRepo from "./db/metaRepo.js";
 
-const routes = {
-  "#/home": renderHome,
-  "#/tasks": renderTasks,
-  "#/profile": renderProfile,
-  "#/history": renderHistory,
-  "#/report": renderReport,
-  "#/settings": renderSettings,
+// Screens are lazy-imported per route so the browser only executes the JS
+// needed for the current screen at boot. All files are still modulepreload'd
+// (fetched in parallel), so this only skips their top-level evaluation — the
+// biggest remaining startup/TBT cost. modulepreload + lazily evaluated.
+const routeFiles = {
+  "#/home": "screenHome.js",
+  "#/tasks": "screenTasks.js",
+  "#/profile": "screenProfile.js",
+  "#/history": "screenHistory.js",
+  "#/report": "screenReport.js",
+  "#/settings": "screenSettings.js",
 };
+
+// screenHome.js -> "renderHome", screenTaskDetail.js -> "renderTaskDetail":
+// the export name is always the module file name with "screen" trimmed and a
+// leading capital kept, plus the "render" prefix.
+function renderExportName(file) {
+  return "render" + file.replace(/^screen/, "").replace(/\.js$/, "");
+}
+
+async function loadScreen(file) {
+  const mod = await import(`./ui/${file}`);
+  const render = mod[renderExportName(file)];
+  if (typeof render !== "function") throw new Error(`No ${renderExportName(file)} export in ${file}`);
+  return render;
+}
 
 const container = document.getElementById("app");
 const navButtons = document.querySelectorAll(".nav-btn");
@@ -51,14 +62,16 @@ async function router() {
     const taskDetailMatch = hash.match(/^#\/task\/(.+)$/);
     if (taskDetailMatch) {
       setActiveNav("#/tasks");
+      const renderTaskDetail = await loadScreen("screenTaskDetail.js");
       await renderTaskDetail(container, decodeURIComponent(taskDetailMatch[1]));
       window.scrollTo(0, 0);
       return;
     }
 
-    const matchedHash = routes[hash] ? hash : "#/home";
-    setActiveNav(matchedHash);
-    await routes[matchedHash](container);
+    const file = routeFiles[hash] || routeFiles["#/home"];
+    setActiveNav(file === routeFiles["#/home"] ? "#/home" : hash);
+    const render = await loadScreen(file);
+    await render(container);
     window.scrollTo(0, 0);
   } catch (err) {
     // Error boundary: a failed render (e.g. a DB error) shouldn't leave a
