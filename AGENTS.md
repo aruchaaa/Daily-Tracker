@@ -1428,8 +1428,8 @@ Speed Index 8.2s, TBT ~3s. Root causes: (1) the ESM import chain loads
 serially under throttling (network tree showed `/` → `app.js` → `screenHome` →
 `achievements` → `streak` one file at a time — 37 module requests);
 (2) no CSP at all → the `csp-xss` audit is the red Best Practices flag
-(adding a working CSP satisfies it). Fixes (HTML/config/docs only; no
-DB/schema/backup change, no JS logic change, still DB v3 / backup v4):
+(adding a working CSP satisfies it). Fixes (HTML/CSS/app.js/config/docs
+only; no DB/schema/backup change, still DB v3 / backup v4):
 - **Module preload** (`index.html`): `<link rel="modulepreload">` links for
   the **first-render** graph only — `app.js` plus the Home screen's
   transitive deps (23 modules) — so the boot files fetch in parallel
@@ -1447,8 +1447,13 @@ DB/schema/backup change, no JS logic change, still DB v3 / backup v4):
   no longer static imports — `router()` does a dynamic `await import()`
   per route, deriving the `renderX` export name from the file name
   (`screenHome.js` → `renderHome`). Boot executes only the current screen's
-  module graph; everything else is still fetched upfront via modulepreload.
+  module graph; the rest is fetched on navigation (and precached by the
+  SW). This cut the startup script-evaluation to ~0 in the trace.
   Dynamic `import()` is allowed by the CSP (`script-src 'self'`).
+- **Nav blur removed** (`css/main.css`): `backdrop-filter: blur(14px)` on
+  the frosted bottom nav was a per-frame Style/Layout/Paint cost on every
+  render; replaced with a slightly more opaque `color-mix` background so
+  the look survives without the blur's GPU work.
 - **Content-Security-Policy** (`index.html` `<meta>` + `vercel.json`
   header): strict policy — `default-src 'self'`; `script-src 'self'`
   (no eval/inline handlers exist in the codebase — audited);
@@ -1461,7 +1466,11 @@ DB/schema/backup change, no JS logic change, still DB v3 / backup v4):
   two combine (same policy, header strictly stronger).
 - **CACHE_NAME → v59** (shell changed); README "What's new (cache v59)"
   + version line; AGENTS history entry; reference in this doc bumped.
-- Harness untouched (112 assertions still green; the changes are
-  HTML/header/docs only). Verified: verify5 ALL VERIFIED (112); linkall
-  37 ok/1 fail (app.js DOM-only); manifest parses as JSON; Lighthouse
-  re-run after deploy to confirm LCP/FCP/TBT + Best Practices gains.
+- Harness untouched (112 assertions still green). Verified: `node --check`
+  on app.js; verify5 ALL VERIFIED (112); linkall 37 ok/1 fail (app.js
+  DOM-only); CSS braces balanced; modulepreload list matches the
+  boot-graph script check. Live headless Lighthouse re-runs after deploy:
+  **`csp-xss` → notApplicable every run** (the BP red flag is gone),
+  FCP ~2.2–2.4s, LCP ~2.6–2.9s (was 3.3s), TBT ~2.0–2.5s (was ~3s),
+  CLS 0, a11y 95–100, SEO 100. Performance totals stay 43–64 depending on
+  run — machine/run variance dominates the remaining spread.

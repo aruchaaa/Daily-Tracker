@@ -246,9 +246,14 @@ you're curious, but in short: your data is safe across this update.
   or theme change, just an earlier first paint.
 - **Lazy screenshot loading**: `app.js` no longer statically imports all
   six screens + task detail. Screens are now `import()`-ed per route, so
-  boot only *executes* the JS for the current screen (the modules are still
-  fetched in parallel via the preload list). Cuts startup long tasks /
-  TBT; navigating still loads each screen on demand.
+  boot only *executes* the JS for the current screen (the modules are
+  fetched via the preload list while onboarding, then cached by the service
+  worker). Cuts startup long tasks / TBT; navigating still loads each
+  screen on demand.
+- **Lighter nav bar**: the frosted-glass `backdrop-filter` blur on the
+  bottom nav was a per-frame Style/Layout/Paint cost during start-up; it's
+  replaced with a slightly more solid translucent background that looks the
+  same without the GPU work.
 - **Security headers**: a strict Content-Security-Policy is now enforced —
   an inline `<meta>` tag plus a `vercel.json` header that also carries
   `frame-ancestors 'none'` (meta can't express that one). No eval, no
