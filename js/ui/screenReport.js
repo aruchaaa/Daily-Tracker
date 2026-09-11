@@ -54,15 +54,15 @@ export async function renderReport(container) {
     el("h3", { class: "profile-subheading", text: t("report.monthlyReport") }),
     el("div", { class: "report-controls" }, [monthInput, generateBtn, csvBtn]),
     resultArea,
-    await buildYearGrid(monthInput, resultArea, now.getFullYear())
+    await buildYearGrid(now.getFullYear())
   );
 
   await loadReport(currentValue, resultArea);
 }
 
-/** 12-month completion grid for the current year; clicking a tile jumps
- *  the monthly report to that month. Reports are computed in parallel. */
-async function buildYearGrid(monthInput, resultArea, year) {
+/** 12-month completion grid for the current year (display-only — the
+ *  month input above is the way to load a report). Computed in parallel. */
+async function buildYearGrid(year) {
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const reports = await Promise.all(months.map((m) => generateReport(year, m)));
 

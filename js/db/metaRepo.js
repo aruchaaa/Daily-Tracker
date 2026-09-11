@@ -7,13 +7,6 @@ export async function getLifetimeExp() {
   return record ? record.value : 0;
 }
 
-export async function setLifetimeExp(value) {
-  const db = await openDB();
-  const tx = db.transaction("meta", "readwrite");
-  tx.objectStore("meta").put({ key: "lifetimeExp", value });
-  await txDone(tx);
-}
-
 export async function getCharacterName() {
   const db = await openDB();
   const tx = db.transaction("meta", "readonly");

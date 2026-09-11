@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v54`. The app also auto-reloads itself once when a newer
+`daily-tracker-v55`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,28 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v55)
+
+- **Install rebuilt yet again — the final shape**: the missmybae-exact v54
+  removed every guide and panel, but the result on the user's Brave was a
+  Settings tab with *nothing* install-related (the browser never offered
+  the event). v55 brings back an **always-visible Install App button** with
+  graceful fallback. While the browser holds a `beforeinstallprompt` event,
+  the click opens the native dialog (missmybae's exact `prompt()` +
+  `await userChoice`). When no event is held — the Chrome/Brave
+  previously-installed suppression — the click reveals a short, hidden,
+  browser-agnostic manual-install guide under the button (Desktop:
+  address-bar ⤓ icon or ⋮ → Save and Share → Install page as app…; Android:
+  ⋮ → Install app; iPhone/iPad: Share → Add to Home Screen; plus a one-line
+  Chrome/Brave site-data reset note, the only fix that revives the real
+  dialog). Already-installed sessions stand no replaceable button at all:
+  `hasInstalled()` (the `appinstalled` session flag plus the `standalone`
+  display mode) renders a "App installed" status line instead.
+- Regression harness: install block grew from 11 → 17 assertions (always-
+  rendered button, hidden-then-revealed guide, quiet `installApp()` paths,
+  `hasInstalled()` standalone/appinstalled handling); **83** total, ALL
+  VERIFIED. linkall still 35 ok / 1 fail (app.js DOM-only).
 
 ## What's new (cache v54)
 

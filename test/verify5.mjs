@@ -275,26 +275,36 @@ assert(freshIds.includes("target-streak-7") && freshIds.includes("target-streak-
 const stillLocked = fresh.every((a) => a.id !== "exp-10000" && a.id !== "level-20");
 assert(stillLocked, "10K EXP / level 20 stay locked at ~5K EXP");
 
-// ---- Install prompt (missmybae pattern) ------------------------------------
-// Mirrors the proven reference (missmybae App.jsx): defer the
-// `beforeinstallprompt` event, render the Install App button ONLY while it
-// is held, and clear on installApp/appinstalled. No guides, toasts, or
-// timeout races — if the browser offers no event, there is no install UI.
-assert(typeof installPrompt.hasInstallPrompt === "function" && typeof installPrompt.installApp === "function", "installPrompt module exports");
+// ---- Install section: always-visible button + manual fallback guide --------
+// The Install App button ALWAYS renders for non-installed users. While the
+// browser holds a `beforeinstallprompt` event, a click opens the native
+// dialog (the missmybae path); when no event is held — Brave/Chrome suppress
+// it on origins that were previously installed — the same click reveals the
+// short manual-install guide below the button. Installed users get a status
+// line instead of the button.
+assert(typeof installPrompt.hasInstallPrompt === "function" && typeof installPrompt.hasInstalled === "function", "installPrompt module exports");
 c = new FakeNode("div");
 await screenSettings.renderSettings(c);
-assert(!findByText(c, "Install App"), "no Install App button when the browser offers no prompt event");
+assert(Boolean(findByText(c, "Install App")), "Install App button always renders for non-installed users (no event held)");
+let guideNode0 = findNode(c, "install-guide");
+assert(guideNode0 && guideNode0.attrs.hidden === true, "manual-install guide is hidden by default");
 assert((await installPrompt.installApp()) === undefined, "installApp with no event held resolves quietly (undefined), never a dead-end");
+// Clicking the button with no event held reveals the guide instead of a dead end.
+const noEvtBtn = findByText(c, "Install App");
+assert(noEvtBtn && typeof noEvtBtn.onclick === "function", "Install App button is a pressable control");
+noEvtBtn.onclick({});
+guideNode0 = findNode(c, "install-guide");
+assert(guideNode0 && guideNode0.hidden === false, "click without a held event reveals the manual guide");
+assert(installPrompt.hasInstalled() === false, "hasInstalled() is false in the harness (no standalone/appinstalled)");
 installPrompt.captureInstallPrompt();
 window.dispatch("beforeinstallprompt", { preventDefault() {} });
 assert(installPrompt.hasInstallPrompt() === true, "beforeinstallprompt stashes the install event");
 c = new FakeNode("div");
 await screenSettings.renderSettings(c);
-assert(Boolean(findByText(c, "Install App")), "Settings shows the Install App button while the event is held");
+guideNode0 = findNode(c, "install-guide");
+assert(guideNode0 && guideNode0.attrs.hidden === true, "guide starts hidden again on a fresh render");
 const heldBtn = findByText(c, "Install App");
-assert(heldBtn && heldBtn.disabled !== true, "Install App button is a pressable control");
-// A normal prompt that resolves accepted: installApp() handles the flow,
-// clears the held event, and returns nothing.
+assert(heldBtn && heldBtn.disabled !== true, "Install App button pressable while the event is held");
 window.dispatch("beforeinstallprompt", {
   preventDefault() {},
   prompt() { return Promise.resolve(); },
@@ -302,18 +312,17 @@ window.dispatch("beforeinstallprompt", {
 });
 const acceptedResult = await installPrompt.installApp();
 assert(acceptedResult === undefined && installPrompt.hasInstallPrompt() === false, "installApp resolves quietly and clears the held event");
-// A prompt() that throws (browser swallows the install flow) must not throw
-// or hang the button either.
 window.dispatch("beforeinstallprompt", { preventDefault() {} });
 assert((await installPrompt.installApp()) === undefined, "installApp swallows a throwing prompt (never hangs, never fails)");
 assert(installPrompt.hasInstallPrompt() === false, "throwing/consumed prompt clears the held event");
-// appinstalled ends installability: no event, no button.
 window.dispatch("beforeinstallprompt", { preventDefault() {} });
 window.dispatch("appinstalled", {});
 assert(installPrompt.hasInstallPrompt() === false, "appinstalled clears the held event");
+assert(installPrompt.hasInstalled() === true, "appinstalled marks the app installed");
 c = new FakeNode("div");
 await screenSettings.renderSettings(c);
-assert(!findByText(c, "Install App"), "Install App button vanishes after appinstalled");
+assert(!findByText(c, "Install App"), "installed users get a status line, no Install App button");
+assert(Boolean(findByText(c, "App installed")), "installed section shows the translated status text");
 
 // ---- History day record: every task of the day ------------------------------
 // Witness day 2026-06-10: BEFORE the July 1 hard-tier loop began, so no

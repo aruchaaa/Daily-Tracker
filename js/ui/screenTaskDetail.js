@@ -44,7 +44,7 @@ export async function renderTaskDetail(container, taskId) {
     // bare ternary.
     ...(timeRange ? [el("p", { class: "task-detail-time", text: timeRange })] : []),
     buildNotesCard(task, todayNote),
-    buildReminderCard(task, container),
+    buildReminderCard(task),
     grid,
     el("h3", { class: "profile-subheading", text: t("detail.lastWeeks", { n: stats.heatmapWeeks }) }),
     buildHeatmap(stats.cells, stats.heatmapWeeks, {
@@ -89,7 +89,7 @@ function buildNotesCard(task, todayNote) {
 
 /** Per-task reminder time, independent of the task's scheduled window.
  *  Falls back to startTime in the scheduler when unset. */
-function buildReminderCard(task, container) {
+function buildReminderCard(task) {
   const input = el("input", { type: "time", class: "input input--time", title: t("detail.reminderTime") });
   input.value = task.reminderTime || "";
 

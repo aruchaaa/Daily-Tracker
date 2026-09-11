@@ -5,7 +5,7 @@ import * as metaRepo from "../db/metaRepo.js";
 import { playClick, playSave, playError, playToggle, playDelete, playUndo } from "../core/sounds.js";
 import { el } from "./components.js";
 import { showConfirmDialog, showToast } from "./toast.js";
-import { installApp, hasInstallPrompt } from "./installPrompt.js";
+import { installApp, hasInstallPrompt, hasInstalled } from "./installPrompt.js";
 import { t, setLang as setI18nLang, getLang } from "../core/i18n.js";
 
 export async function renderSettings(container) {
@@ -145,7 +145,7 @@ export async function renderSettings(container) {
   container.append(
     el("h2", { class: "section-title", text: t("settings.title") }),
     buildLanguageSection(container),
-    buildInstallSection(container),
+    buildInstallSection(),
     buildThemeSection(currentTheme, container),
     buildAccentSection(currentAccent, container),
     buildRemindersSection(remindersEnabled, container),
@@ -388,13 +388,28 @@ function rgbToHex(rgbStr) {
   return `#${toHex(match[1])}${toHex(match[2])}${toHex(match[3])}`;
 }
 
-// Install UI mirrors the proven missmybae pattern: the "Install App"
-// button exists ONLY while the browser is offering a `beforeinstallprompt`
-// event. When the event never arrives (e.g. Brave remembering an old
-// install), there is simply no install UI — the browser's own address-bar
-// icon / ⋮ menu is the path.
-function buildInstallSection(container) {
-  if (!hasInstallPrompt()) return null;
+// Install section: an always-visible Install button. When the browser is
+// offering a `beforeinstallprompt` event the button opens the native dialog
+// (missmybae's exact pattern). When no event is held — Chrome/Brave hide it
+// on origins that were previously installed, or it never fires — the click
+// reveals a short, browser-agnostic manual-install guide below the button.
+// Already-installed users (standalone / appinstalled) get a status line.
+function buildInstallSection() {
+  if (hasInstalled()) {
+    return el("div", { class: "settings-section" }, [
+      el("h3", { text: t("settings.install") }),
+      el("p", { class: "settings-status", text: t("settings.installed") }),
+    ]);
+  }
+
+  const guide = el("div", { class: "install-guide", hidden: true, role: "note" }, [
+    el("p", { class: "install-guide__intro", text: t("settings.installGuideHint") }),
+    el("p", { class: "install-guide__step", text: t("settings.installManualDesktop") }),
+    el("p", { class: "install-guide__step", text: t("settings.installManualAndroid") }),
+    el("p", { class: "install-guide__step", text: t("settings.installManualIOS") }),
+    el("p", { class: "install-guide__step", text: t("settings.installResetHint") }),
+  ]);
+
   return el("div", { class: "settings-section" }, [
     el("h3", { text: t("settings.install") }),
     el("button", {
@@ -403,9 +418,14 @@ function buildInstallSection(container) {
       text: t("settings.installBtn"),
       onclick: () => {
         playClick();
+        if (!hasInstallPrompt()) {
+          guide.hidden = false;
+          return;
+        }
         void installApp();
       },
     }),
+    guide,
   ]);
 }
 

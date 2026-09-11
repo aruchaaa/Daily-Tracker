@@ -39,11 +39,11 @@ export async function renderHome(container, { justLeveledUp = false, justChecked
     el("h2", { class: "section-title", text: t("home.todayTasks") }),
     buildTaskList(state, progress, container, justCheckedId),
     buildTodaySummary(state),
-    buildSleepCard(today, sleepHours, container)
+    buildSleepCard(today, sleepHours)
   );
 
   if (!(await metaRepo.getOnboardingDone())) {
-    container.appendChild(buildOnboardingOverlay(container));
+    container.appendChild(buildOnboardingOverlay());
   }
 }
 
@@ -232,7 +232,7 @@ function buildTodaySummary(state) {
   ]);
 }
 
-function buildSleepCard(today, currentHours, container) {
+function buildSleepCard(today, currentHours) {
   const input = el("input", {
     type: "number",
     class: "input input--small",
@@ -271,7 +271,7 @@ function buildSleepCard(today, currentHours, container) {
   ]);
 }
 
-function buildOnboardingOverlay(container) {
+function buildOnboardingOverlay() {
   const dismiss = async () => {
     await metaRepo.setOnboardingDone(true);
     overlay.classList.add("onboarding-overlay--fade");

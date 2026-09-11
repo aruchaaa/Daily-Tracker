@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v54`). The manifest is
+  reference in `README.md` (currently `v55`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -587,19 +587,20 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **77** (hard-tier seeded 503-day range +
+- Current assertion count is **83** (hard-tier seeded 503-day range +
   backfilled 40-day tail, the 12-assertion day-record block added at SW
   v36, the 2-assertion badge-i18n regression block added at SW v44, and
-  the 11-assertion missmybae-style install block added at SW v54: no
-  Install button with no held `beforeinstallprompt` event,
-  `installApp()` resolves quietly — never a failure/dead-end —, the
-  button appears only while the event is held, prompts that resolve or
-  throw both clear the event safely (no hangs, no toasts), and
-  `appinstalled` removes the button). Don't assert exact intra-group row
-  order in the day-record tests: sortOrder uses `Date.now()` so rapid
-  `createTask` calls can tie, and `getAllTasks` tie-breaks by uuid key
-  order — assert membership/sets and rely on the deterministic groups
-  (existing rows first, deleted snapshot/note rows appended after).
+  the 17-assertion install block added at SW v55: the Install App button
+  always renders for non-installed users, the manual guide starts `hidden`
+  and a no-event click reveals it, `installApp()` resolves quietly — never
+  a failure/dead-end —, prompts that resolve or throw both clear the event
+  safely (no hangs, no toasts), and `appinstalled` sets `hasInstalled()` so
+  installed sessions render a status line instead of the button). Don't
+  assert exact intra-group row order in the day-record tests: sortOrder
+  uses `Date.now()` so rapid `createTask` calls can tie, and `getAllTasks`
+  tie-breaks by uuid key order — assert membership/sets and rely on the
+  deterministic groups (existing rows first, deleted snapshot/note rows
+  appended after).
 - Harness base is **relative** (`new URL("../", import.meta.url)` from
   `test/`), so the suite follows the repo wherever it lives. The scripts
   originally hardcoded absolute `file:///` bases and silently tested a
@@ -1246,3 +1247,40 @@ schema/backup change; JS + CSS + i18n + harness + docs only.
     origin, that event stays suppressed, so the Settings tab shows no
     install button until the origin's site data is cleared — the browser's
     own address-bar icon / ⋮ menu is the install path in the meantime.
+
+### Install with an always-visible button + manual fallback guide (SW v55)
+User follow-up to v54: "null hahaha" — with every guide removed, their
+Brave (which never offers the event) renders no install UI at all. New
+direction the user approved: bring the button back as an
+**always-visible** control that fails over to a short manual tutorial
+instead of a dead end, plus an app-wide cleanup pass (dead code/CSS/i18n
+removed, doc sync).
+
+- **`js/ui/installPrompt.js`**: adds `hasInstalled()` — `installedFlag` set
+  on `appinstalled` OR `matchMedia("(display-mode: standalone)")` /
+  `navigator.standalone` (try/catch → false; fails safe in Node). `installApp()`
+  and the `beforeinstallprompt` handling stay untouched (missmybae shape).
+- **`js/ui/screenSettings.js` `buildInstallSection`**: three states instead
+  of "exists only while the event is held". Installed (`hasInstalled()`) →
+  heading + `settings.installed` status line, no button. Otherwise a
+  heading + Install App button **always rendered** + a `.install-guide`
+  div hidden by default (`hidden` attr). Button click: `playClick()`;
+  if `!hasInstallPrompt()` → `guide.hidden = false` (reveals the manual
+  steps inline, no toast); else → `void installApp()` (the native dialog).
+- **i18n**: `settings.installed` restored + five new keys (EN + ID):
+  `installGuideHint`, `installManualDesktop` (address-bar ⤓ or ⋮ → Save and
+  Share → Install page as app…), `installManualAndroid`, `installManualIOS`,
+  and `installResetHint` (Chrome/Brave one-line site-data reset — the only
+  fix that revives the suppressed prompt). Written casual-Indonesian.
+- **CSS**: `.install-guide` (dashed panel via `--panel-border`/`--bg-raised`/
+  `--radius-md`), `[hidden]` guard, `__intro`, `__step` with gold bullets.
+- **Harness** (`test/verify5.mjs`): install block 11 → 17 assertions —
+  button always renders without an event, guide `hidden` by default,
+  no-event click reveals it, `hasInstalled()` false in Node, event-stash
+  still works, guide hidden on fresh render, quiet `installApp()` on
+  accepted/consumed prompts, `appinstalled` clears the event AND flips
+  `hasInstalled()`, installed sessions show the status instead of a button.
+  77 → **83**, ALL VERIFIED.
+- Verified: `node --check` all edited JS; verify5 ALL VERIFIED (83);
+  linkall 35 ok/1 fail (app.js DOM-only); CSS braces balanced; i18n scan
+  clean. CACHE_NAME → v55.

@@ -1,16 +1,15 @@
-/** PWA install helper — mirrors the proven missmybae pattern exactly: the
- *  browser fires `beforeinstallprompt` when the app is installable, we
- *  stash that event (state held in memory only), and the Settings screen
- *  shows an "Install App" button ONLY while an event is held. `appinstalled`
- *  clears it. No toasts, no guides, no timeouts — if the browser never
- *  offers the event, there is simply no install UI, and the browser's own
- *  menu/address-bar affordances are the path. */
+/** PWA install helper — the core matches the proven missmybae pattern: we
+ *  stash the `beforeinstallprompt` event and the Settings screen prompts via
+ *  it (the same dialog the address-bar icon opens). On top of that, Settings
+ *  keeps an always-visible Install button so users on browsers that never
+ *  offer the event still get guidance to the manual path. */
 let deferredPrompt = null;
+let installedFlag = false;
 const readyListeners = new Set();
 
-/** Register a callback fired whenever the install prompt becomes (or stops
- *  being) available — the Settings screen re-renders its button from this,
- *  because `beforeinstallprompt` usually arrives *after* the first render. */
+/** Register a callback fired whenever install availability or install state
+ *  changes — the Settings screen re-renders its section from this, because
+ *  `beforeinstallprompt` usually arrives *after* the first render. */
 export function onInstallPromptReady(cb) {
   readyListeners.add(cb);
   return () => readyListeners.delete(cb);
@@ -27,6 +26,7 @@ function notifyReady() {
 }
 
 export function captureInstallPrompt() {
+  if (typeof window === "undefined") return;
   if (!("beforeinstallprompt" in window)) return;
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
@@ -35,19 +35,36 @@ export function captureInstallPrompt() {
   });
   window.addEventListener("appinstalled", () => {
     deferredPrompt = null;
+    installedFlag = true;
     notifyReady();
   });
 }
 
-/** True while the browser is offering an install event (the button's only
- *  reason to exist). */
+/** True while the browser is offering an install event (the button can
+ *  actually open the native dialog). */
 export function hasInstallPrompt() {
   return Boolean(deferredPrompt);
 }
 
-/** Exactly missmybae's `installApp()`: prompt, wait for the answer, forget
- *  the event. `prompt()`/`userChoice` failures are swallowed — cancelling
- *  the dialog is a normal outcome, not an error. */
+/** True when the app is already installed: either this session saw
+ *  `appinstalled`, or the page runs standalone (the installed window).
+ *  Users that are already installed get a status line, never an install
+ *  button. Fails safe to false in odd embeds / the Node harness. */
+export function hasInstalled() {
+  if (installedFlag) return true;
+  try {
+    return (
+      Boolean(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+      Boolean(window.navigator && window.navigator.standalone)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** missmybae's `installApp()`: prompt, wait for the answer, forget the
+ *  event. `prompt()`/`userChoice` failures are swallowed — cancelling the
+ *  dialog is a normal outcome, not an error. */
 export async function installApp() {
   if (!deferredPrompt) return;
   const evt = deferredPrompt;

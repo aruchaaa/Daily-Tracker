@@ -1107,6 +1107,39 @@
   min-height: 18px;
 }
 
+.install-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px dashed var(--panel-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+}
+
+.install-guide[hidden] {
+  display: none;
+}
+
+.install-guide__intro {
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.install-guide__step {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-dim);
+}
+
+.install-guide__step::before {
+  content: "\2022";
+  color: var(--gold);
+  margin-right: 6px;
+}
+
 .theme-option-list {
   display: flex;
   flex-direction: column;
