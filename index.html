@@ -81,48 +81,35 @@
 <link rel="stylesheet" href="css/components.css" />
 <link rel="stylesheet" href="css/animations.css" />
 
-<!-- Preload the whole ESM graph so the browser fetches modules in parallel
-     instead of walking the import waterfall (the previous cost driver for
-     FCP/LCP in Lighthouse). Keep this list in step with js/ and the SW
-     APP_SHELL. Order below mirrors APP_SHELL. -->
+<!-- Preload the FIRST-RENDER module graph only (app.js + its Home-screen
+     deps). This lets first paint start without waiting on the import
+     waterfall, without flooding the connection limit with every module
+     upfront. The other screens are lazy-import()'d on navigation and are
+     precached by the service worker anyway, so they need no preload here.
+     Keep this list in step with js/ (recompute via the boot-graph). -->
 <link rel="modulepreload" href="js/app.js" />
-<link rel="modulepreload" href="js/utils.js" />
-<link rel="modulepreload" href="js/db/db.js" />
-<link rel="modulepreload" href="js/db/tasksRepo.js" />
-<link rel="modulepreload" href="js/db/completionsRepo.js" />
-<link rel="modulepreload" href="js/db/metaRepo.js" />
-<link rel="modulepreload" href="js/db/sleepRepo.js" />
-<link rel="modulepreload" href="js/db/notesRepo.js" />
-<link rel="modulepreload" href="js/core/expEngine.js" />
-<link rel="modulepreload" href="js/core/dailyTracker.js" />
-<link rel="modulepreload" href="js/core/history.js" />
-<link rel="modulepreload" href="js/core/streak.js" />
-<link rel="modulepreload" href="js/core/monthlyReport.js" />
-<link rel="modulepreload" href="js/core/profileStats.js" />
-<link rel="modulepreload" href="js/core/expTrend.js" />
-<link rel="modulepreload" href="js/core/sleepTrend.js" />
-<link rel="modulepreload" href="js/core/theme.js" />
-<link rel="modulepreload" href="js/core/taskStats.js" />
-<link rel="modulepreload" href="js/core/schedule.js" />
-<link rel="modulepreload" href="js/core/repeatDays.js" />
-<link rel="modulepreload" href="js/core/weeklySummary.js" />
-<link rel="modulepreload" href="js/core/notifications.js" />
 <link rel="modulepreload" href="js/core/achievements.js" />
-<link rel="modulepreload" href="js/core/sounds.js" />
+<link rel="modulepreload" href="js/core/dailyTracker.js" />
+<link rel="modulepreload" href="js/core/expEngine.js" />
+<link rel="modulepreload" href="js/core/history.js" />
 <link rel="modulepreload" href="js/core/i18n.js" />
+<link rel="modulepreload" href="js/core/notifications.js" />
+<link rel="modulepreload" href="js/core/repeatDays.js" />
+<link rel="modulepreload" href="js/core/sounds.js" />
+<link rel="modulepreload" href="js/core/streak.js" />
+<link rel="modulepreload" href="js/core/theme.js" />
+<link rel="modulepreload" href="js/db/completionsRepo.js" />
+<link rel="modulepreload" href="js/db/db.js" />
+<link rel="modulepreload" href="js/db/metaRepo.js" />
+<link rel="modulepreload" href="js/db/notesRepo.js" />
+<link rel="modulepreload" href="js/db/sleepRepo.js" />
+<link rel="modulepreload" href="js/db/tasksRepo.js" />
 <link rel="modulepreload" href="js/ui/components.js" />
-<link rel="modulepreload" href="js/ui/toast.js" />
-<link rel="modulepreload" href="js/ui/installPrompt.js" />
 <link rel="modulepreload" href="js/ui/confetti.js" />
+<link rel="modulepreload" href="js/ui/installPrompt.js" />
 <link rel="modulepreload" href="js/ui/screenHome.js" />
-<link rel="modulepreload" href="js/ui/screenTasks.js" />
-<link rel="modulepreload" href="js/ui/screenTaskDetail.js" />
-<link rel="modulepreload" href="js/ui/screenProfile.js" />
-<link rel="modulepreload" href="js/ui/screenHistory.js" />
-<link rel="modulepreload" href="js/ui/screenReport.js" />
-<link rel="modulepreload" href="js/ui/screenSettings.js" />
-<link rel="modulepreload" href="js/backup/backupManager.js" />
-<link rel="modulepreload" href="js/backup/csvExport.js" />
+<link rel="modulepreload" href="js/ui/toast.js" />
+<link rel="modulepreload" href="js/utils.js" />
 </head>
 <body>
 

@@ -232,11 +232,13 @@ you're curious, but in short: your data is safe across this update.
 
 ## What's new (cache v59)
 
-- **Speed pass (Lighthouse)**: the HTML head now `modulepreload`s the whole
-  JavaScript module graph, so the browser fetches all 38 modules in parallel
-  instead of walking the import chain one file at a time — the biggest
-  remaining FCP/LCP/TBT cost in audits. Pure front-loading, no behavior
-  change, zero dependencies.
+- **Speed pass (Lighthouse)**: the HTML head `modulepreload`s the
+  first-render module graph (app.js + the Home screen's dependencies, 23
+  modules), so first paint no longer waits on the import waterfall — and
+  without flooding the connection limit by preloading every file upfront.
+  The other screens are lazy `import()`-ed on navigation and precached by
+  the service worker. Pure front-loading, no behavior change, zero
+  dependencies.
 - **Critical CSS inlined**: the splash screen's styles (plus the base
   page background) now live in a small `<style>` block in the HTML head, so
   the first paint happens the moment the HTML arrives instead of waiting on

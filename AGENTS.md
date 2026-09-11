@@ -1430,11 +1430,14 @@ serially under throttling (network tree showed `/` → `app.js` → `screenHome`
 (2) no CSP at all → the `csp-xss` audit is the red Best Practices flag
 (adding a working CSP satisfies it). Fixes (HTML/config/docs only; no
 DB/schema/backup change, no JS logic change, still DB v3 / backup v4):
-- **Module preload** (`index.html`): a `<link rel="modulepreload">` for
-  every module under `js/` (38 files incl. `app.js`) in the head, so the
-  browser fetches the whole graph in parallel instead of walking the import
-  waterfall. List kept in step with `js/` and the SW APP_SHELL. Pure
-  front-loading; no behavior change, zero dependencies.
+- **Module preload** (`index.html`): `<link rel="modulepreload">` links for
+  the **first-render** graph only — `app.js` plus the Home screen's
+  transitive deps (23 modules) — so the boot files fetch in parallel
+  without bounding to walk the import waterfall, and without hitting the
+  connection limit with all 38 modules at once. The rest are
+  lazy-imported per route and precached by the SW, so they need no preload.
+  Recompute this list whenever screen dependencies change (derive from the
+  static import graph of `app.js` + `screenHome.js`).
 - **Critical splash CSS inlined** (`index.html` `<style>` block before the
   stylesheets): the splash screen + base `html,body` background now render
   from inline CSS (hardcoded Stat Sheet palette, overridden by the real
