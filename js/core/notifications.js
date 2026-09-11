@@ -1,5 +1,7 @@
 import * as tasksRepo from "../db/tasksRepo.js";
 import * as metaRepo from "../db/metaRepo.js";
+import { getTodayDateString } from "../utils.js";
+import { appliesOnWeekday } from "./repeatDays.js";
 
 /**
  * Schedule reminders for today's tasks. Each task can carry its own
@@ -20,7 +22,8 @@ export async function scheduleTodayReminders() {
     if (Notification.permission !== "granted") return;
     if (!(await metaRepo.getRemindersEnabled())) return;
 
-    const tasks = await tasksRepo.getActiveTasks();
+    const today = getTodayDateString();
+    const tasks = (await tasksRepo.getActiveTasks()).filter((task) => appliesOnWeekday(task, today));
     const now = new Date();
 
     for (const task of tasks) {

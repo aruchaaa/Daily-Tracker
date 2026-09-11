@@ -6,7 +6,7 @@
  */
 import { getTodayDateString } from "../utils.js";
 import * as sounds from "../core/sounds.js";
-import { t, monthShortName, monthFullName, dayFullName } from "../core/i18n.js";
+import { t, monthShortName, monthFullName, dayFullName, dayShortName } from "../core/i18n.js";
 
 function parseDate(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -219,6 +219,14 @@ export function buildTrendChart(dataPoints, { barClass = "exp-trend-bar", todayB
 export function formatTimeRange(task) {
   if (!task.startTime) return "";
   return task.endTime ? `${task.startTime}\u2013${task.endTime}` : task.startTime;
+}
+
+/** "Every day" (no repeatDays / empty) or the localized short weekday list
+ *  ("Mon, Wed, Fri"). Pure text — no leftover punctuation for single days. */
+export function repeatLabel(task) {
+  const days = task && task.repeatDays;
+  if (!Array.isArray(days) || days.length === 0) return t("tasks.everyDay");
+  return days.sort((a, b) => a - b).map((d) => dayShortName(d)).join(", ");
 }
 
 /**

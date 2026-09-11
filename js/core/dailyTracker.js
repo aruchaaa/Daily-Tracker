@@ -1,20 +1,23 @@
 import * as tasksRepo from "../db/tasksRepo.js";
 import * as completionsRepo from "../db/completionsRepo.js";
 import { getTodayDateString } from "../utils.js";
+import { appliesOnWeekday } from "./repeatDays.js";
 
 /**
  * Joins today's active tasks with today's completion records.
  * Returns { date, items: [{task, isCompleted}], totalExpToday }
  * `allTasks` (optional, preloaded) avoids a redundant second read when the
  * caller already has the full task list — used by the Home screen.
+ * Only tasks whose repeatDays allow today are listed.
  */
 export async function getTodayState(allTasks) {
   const date = getTodayDateString();
-  const [activeTasks, completions] = await Promise.all([
-    allTasks ? Promise.resolve(allTasks.filter((t) => t.isActive)) : tasksRepo.getActiveTasks(),
+  const [tasks, completions] = await Promise.all([
+    allTasks ? Promise.resolve(allTasks) : tasksRepo.getAllTasks(),
     completionsRepo.getCompletionsForDate(date),
   ]);
 
+  const activeTasks = tasks.filter((t) => t.isActive && appliesOnWeekday(t, date));
   const completedTaskIds = new Set(completions.map((c) => c.taskId));
 
   const items = activeTasks

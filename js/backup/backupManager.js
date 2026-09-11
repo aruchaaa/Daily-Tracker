@@ -4,12 +4,14 @@ import * as sleepRepo from "../db/sleepRepo.js";
 import * as metaRepo from "../db/metaRepo.js";
 import * as notesRepo from "../db/notesRepo.js";
 import { openDB, promisifyRequest } from "../db/db.js";
+import { normalizeRepeatDays } from "../core/repeatDays.js";
 
 // v1 exported only tasks + completions + lifetimeExp. v2 also exports all
 // sleep logs and every meta row (name, theme, accent, moments, backup time).
-// v3 adds per-day task notes. Import still accepts older files — they just
-// restore with those extras empty.
-const BACKUP_VERSION = 3;
+// v3 adds per-day task notes. v4 carries each task's repeatDays schedule and
+// deactivatedAt marker. Import still accepts older files — they just restore
+// with those extras empty.
+const BACKUP_VERSION = 4;
 
 export async function buildBackupData() {
   const [tasks, completions, sleepLogs, meta, taskNotes] = await Promise.all([
@@ -236,6 +238,15 @@ function normalizeBackup(backup) {
       createdAt: typeof t.createdAt === "string" ? t.createdAt : new Date().toISOString(),
     };
     if (typeof t.sortOrder === "number") cleanTask.sortOrder = t.sortOrder;
+    // v4 fields: a normalized repeatDays array (only when it restricts the
+    // schedule — empty/missing means every day) and a validated deactivatedAt.
+    const repeatDays = normalizeRepeatDays(t.repeatDays);
+    if (repeatDays.length > 0) cleanTask.repeatDays = repeatDays;
+    if (typeof t.deactivatedAt === "string" && t.deactivatedAt) {
+      if (!Number.isNaN(new Date(t.deactivatedAt).getTime())) {
+        cleanTask.deactivatedAt = t.deactivatedAt;
+      }
+    }
     cleanTasks.push(cleanTask);
 
     if (typeof t.notes === "string" && t.notes.trim()) {

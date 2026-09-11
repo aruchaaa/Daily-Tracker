@@ -1,11 +1,13 @@
 import { generateReport } from "../core/monthlyReport.js";
+import * as completionsRepo from "../db/completionsRepo.js";
 import * as metaRepo from "../db/metaRepo.js";
 import { monthName } from "../utils.js";
-import { exportMonthCSV } from "../backup/csvExport.js";
+import { exportMonthCSV, exportAllCSV } from "../backup/csvExport.js";
+import { getWeeklySummary } from "../core/weeklySummary.js";
 import { playSave, playError, playOpen } from "../core/sounds.js";
 import { el, statCard, gradeClass, buildEmptyState } from "./components.js";
 import { showToast } from "./toast.js";
-import { t, monthShortName } from "../core/i18n.js";
+import { t, monthShortName, dayFullName } from "../core/i18n.js";
 
 export async function renderReport(container) {
   container.innerHTML = "";
@@ -48,11 +50,26 @@ export async function renderReport(container) {
       }
     },
   });
+  const allCsvBtn = el("button", {
+    class: "btn",
+    type: "button",
+    text: t("report.exportAllCsv"),
+    onclick: async () => {
+      try {
+        await exportAllCSV();
+        playSave();
+        showToast(t("report.csvAllDownloaded"), "success");
+      } catch (e) {
+        playError();
+        showToast(t("report.csvFailed") + ": " + e.message, "error");
+      }
+    },
+  });
 
   container.append(
     el("h2", { class: "section-title", text: t("report.title") }),
     el("h3", { class: "profile-subheading", text: t("report.monthlyReport") }),
-    el("div", { class: "report-controls" }, [monthInput, generateBtn, csvBtn]),
+    el("div", { class: "report-controls" }, [monthInput, generateBtn, csvBtn, allCsvBtn]),
     resultArea,
     await buildYearGrid(now.getFullYear())
   );
@@ -99,11 +116,13 @@ async function buildYearGrid(year) {
 async function loadReport(yearMonth, resultArea) {
   resultArea.innerHTML = "";
   const [year, month] = yearMonth.split("-").map(Number);
-  const [report, characterName, momentText] = await Promise.all([
+  const [report, characterName, momentText, monthCompletions] = await Promise.all([
     generateReport(year, month),
     metaRepo.getCharacterName(),
     metaRepo.getMemorableMoment(yearMonth),
+    completionsRepo.getCompletionsForMonth(year, month),
   ]);
+  const weekSummary = getWeeklySummary(monthCompletions, year, month);
 
   const subtitle = characterName
     ? `${characterName} \u2014 ${t("report.level", { n: report.currentLevel })}`
@@ -146,7 +165,41 @@ async function loadReport(yearMonth, resultArea) {
     text: t("report.generated", { date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) }),
   });
 
-  resultArea.append(header, completionMeter, grid, printBtn, buildTaskTallySection(report.taskTally), buildMomentSection(yearMonth, momentText), footer);
+  resultArea.append(header, completionMeter, grid, printBtn, buildWeeklySection(weekSummary), buildTaskTallySection(report.taskTally), buildMomentSection(yearMonth, momentText), footer);
+}
+
+/** Per-week EXP/done bars (Monday-start, clipped to the month) plus the
+ *  month's best completion-rate day. Reuses the tally-bar styles. */
+function buildWeeklySection(summary) {
+  const maxExp = Math.max(1, ...summary.weeks.map((w) => w.exp));
+  const rows = summary.weeks.map((w) => {
+    const fill = el("div", { class: "tally-bar__fill" });
+    fill.style.width = `${(w.exp / maxExp) * 100}%`;
+    return el("div", { class: "tally-row" }, [
+      el("div", { class: "tally-row__label" }, [
+        el("span", { class: "tally-row__name", text: `${shortLabel(w.start)}\u2013${shortLabel(w.end)}` }),
+        el("span", { class: "tally-row__count", text: `${w.done}\u00d7 \u00b7 ${w.exp} EXP` }),
+      ]),
+      el("div", { class: "tally-bar" }, [fill]),
+    ]);
+  });
+  const best =
+    summary.bestDay
+      ? el("div", {
+          class: "week-summary__best",
+          text: t("report.bestDay", { day: dayFullName(summary.bestDay.day), pct: Math.round(summary.bestDay.rate * 100) }),
+        })
+      : null;
+  return el("div", { class: "week-summary" }, [
+    el("div", { class: "profile-name-card__label", text: t("report.weeklyBreakdown") }),
+    el("div", { class: "tally-list" }, rows),
+    best,
+  ]);
+}
+
+function shortLabel(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return `${monthShortName(m)} ${d}`;
 }
 
 function buildTaskTallySection(taskTally) {

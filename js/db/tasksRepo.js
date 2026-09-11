@@ -1,5 +1,6 @@
 import { openDB, promisifyRequest, txDone } from "./db.js";
 import { generateId } from "../utils.js";
+import { normalizeRepeatDays } from "../core/repeatDays.js";
 
 /** Convert "HH:MM" to minutes since midnight for time-based sorting. */
 function timeToSortOrder(startTime) {
@@ -8,7 +9,7 @@ function timeToSortOrder(startTime) {
   return h * 60 + m;
 }
 
-export async function createTask({ name, expValue, startTime, endTime }) {
+export async function createTask({ name, expValue, startTime, endTime, repeatDays }) {
   const db = await openDB();
   const now = new Date().toISOString();
   const task = {
@@ -24,6 +25,10 @@ export async function createTask({ name, expValue, startTime, endTime }) {
     createdAt: now,
     updatedAt: now,
   };
+  // Repeat days are plain data; a normalized non-empty array is stored,
+  // otherwise the task applies every day (no field at all).
+  const days = normalizeRepeatDays(repeatDays);
+  if (days.length > 0) task.repeatDays = days;
   const tx = db.transaction("tasks", "readwrite");
   tx.objectStore("tasks").put(task);
   await txDone(tx);
@@ -45,6 +50,18 @@ export async function updateTask(id, changes) {
     updated.sortOrder = changes.startTime
       ? timeToSortOrder(changes.startTime)
       : Date.now();
+  }
+  // Repeat days are normalized on write; a stale deactivatedAt is cleared
+  // whenever the task is touched so it can't outlive a reactivation.
+  if ("repeatDays" in changes) {
+    const days = normalizeRepeatDays(changes.repeatDays);
+    if (days.length > 0) updated.repeatDays = days;
+    else delete updated.repeatDays;
+  }
+  // Track the deactivation instant (History and the monthly report clamp
+  // to it). Reactivation clears the marker; every other update leaves it.
+  if ("isActive" in changes) {
+    updated.deactivatedAt = changes.isActive ? null : updated.deactivatedAt || new Date().toISOString();
   }
   store.put(updated);
   await txDone(tx);

@@ -414,6 +414,19 @@
   color: var(--ink-faint);
 }
 
+/* Per-task weekly repeat picker: one chip per weekday (Sun..Sat). */
+.repeat-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.repeat-picker__day {
+  flex: 0 0 auto;
+  min-width: 44px;
+  text-align: center;
+}
+
 /* ============================== Manage tasks =============================== */
 
 .task-form {
@@ -588,6 +601,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Weekly-repeat summary under the task name ("Every day" / "Mon, Wed, Fri"). */
+.task-manage-row__repeat {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--mint);
 }
 
 .icon-btn {
@@ -776,6 +800,17 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.week-summary__best {
+  margin-top: 12px;
+  padding: 8px 14px;
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold);
 }
 
 .tally-row__label {
@@ -1279,6 +1314,42 @@
   color: var(--ink);
   letter-spacing: -0.01em;
   line-height: 1.4;
+}
+
+/* Yesterday recap pill (always visible under the greeting). */
+.home-yesterday {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 8px 14px;
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+}
+
+.home-yesterday__text {
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+/* Current-streak chip under the level panel (hidden while streak is 0). */
+.streak-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 6px 14px;
+  width: max-content;
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+}
+
+.streak-chip__text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+  font-family: var(--font-stat);
 }
 
 /* ============================== Daily target card =========================== */

@@ -3,19 +3,19 @@ import * as completionsRepo from "../db/completionsRepo.js";
 import * as metaRepo from "../db/metaRepo.js";
 import { getLevel } from "./expEngine.js";
 import { calculateLongestStreak } from "./streak.js";
+import { formatDate } from "../utils.js";
+import { appliesOnWeekday } from "./repeatDays.js";
 
 /**
  * Note on "total active task occurrences": each currently-active task
- * contributes one slot per day it has actually existed within the report
- * range — not one slot per day for the WHOLE range regardless of when it
- * was created. A task added on day 15 of a month that's 19 days in only
- * contributes 5 slots, not 19. This uses each task's own createdAt, which
- * already existed for every task, so no schema change was needed.
- * Residual limitation: a task toggled inactive/active more than once
- * within the month isn't tracked precisely (only creation date is), so
- * that specific case still isn't perfectly accurate — full accuracy there
- * would need a proper activation history log, a bigger change than this
- * warrants for how rarely that pattern actually comes up.
+ * contributes one slot per day it has actually existed (and applied)
+ * within the report range — not one slot per day for the WHOLE range
+ * regardless of when it was created or which weekdays it repeats on.
+ * A task added on day 15 of a month that's 19 days in only contributes
+ * 5 slots, not 19; a Mon/Wed/Fri task never inflates Tuesday's
+ * denominator. Deactivated tasks stop counting the day after their
+ * deactivatedAt instant. This uses createdAt/repeatDays/deactivatedAt,
+ * all plain fields every task has, so no schema change was needed.
  */
 export async function generateReport(year, month) {
   const activeTasks = await tasksRepo.getActiveTasks();
@@ -70,17 +70,29 @@ export async function generateReport(year, month) {
   };
 }
 
-/** How many days of [rangeStart, rangeEnd] (inclusive) fall on or after
- *  the task's creation date — i.e. how many of those days it could
- *  actually have been completed on. Compares calendar dates only (not
- *  time-of-day), so a task created any time on day X still counts as
- *  available for the whole of day X. */
-function daysTaskExistedInRange(task, rangeStart, rangeEnd) {
+/** How many days of [rangeStart, rangeEnd] (inclusive) fall on a weekday
+ *  the task repeats on AND on/after its creation date (and, for
+ *  deactivated tasks, on/before its deactivation day) — i.e. how many of
+ *  those days it could actually have been completed on. Compares calendar
+ *  dates only (not time-of-day), so a task created any time on day X
+ *  still counts as available for the whole of day X. Exported for the
+ *  regression harness. */
+export function daysTaskExistedInRange(task, rangeStart, rangeEnd) {
   const created = new Date(task.createdAt);
   const createdDateOnly = new Date(created.getFullYear(), created.getMonth(), created.getDate());
-  const effectiveStart = createdDateOnly > rangeStart ? createdDateOnly : rangeStart;
-  if (effectiveStart > rangeEnd) return 0;
-  return Math.round((rangeEnd - effectiveStart) / 86400000) + 1;
+  let start = createdDateOnly > rangeStart ? createdDateOnly : rangeStart;
+  let end = rangeEnd;
+  if (!task.isActive && typeof task.deactivatedAt === "string" && task.deactivatedAt) {
+    const deact = new Date(task.deactivatedAt);
+    const deactDate = new Date(deact.getFullYear(), deact.getMonth(), deact.getDate());
+    if (deactDate < end) end = deactDate;
+  }
+  if (start > end) return 0;
+  let count = 0;
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    if (appliesOnWeekday(task, formatDate(d))) count += 1;
+  }
+  return count;
 }
 
 /**

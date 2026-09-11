@@ -2,6 +2,7 @@ import * as completionsRepo from "../db/completionsRepo.js";
 import * as tasksRepo from "../db/tasksRepo.js";
 import * as notesRepo from "../db/notesRepo.js";
 import { formatDate } from "../utils.js";
+import { appliesOnWeekday } from "./repeatDays.js";
 
 /**
  * Historical records are read-only by design: there is no edit/delete path
@@ -15,9 +16,9 @@ import { formatDate } from "../utils.js";
  * day and why didn't I check some off" via that day's notes. The rules:
  *
  * - A currently-existing task is included once its creation date <= the
- *   day, in Home's current sortOrder (best-effort mirror of the checklist
- *   as it reads today; the app deliberately does not track when a task was
- *   renamed/deactivated, so past ordering and active-state are approximations).
+ *   day AND the day's weekday is in its repeatDays (missing/empty = every
+ *   day). It keeps appearing while active or until its deactivatedAt
+ *   day (deactivated tasks before that instant still count for the day).
  * - Completed tasks that were later deleted still appear from their
  *   completion snapshot (rename/delete can't erase history).
  * - Deleted, never-completed tasks still appear when they carry a note for
@@ -40,6 +41,12 @@ export async function getDayRecord(date) {
   for (const task of tasks) {
     // createdAt is an ISO timestamp; compare its local calendar date.
     if (formatDate(new Date(task.createdAt)) > date) continue;
+    // Weekend-restricted tasks don't appear on non-applying days, and a
+    // deactivated task stays listed only through its deactivation day.
+    if (!appliesOnWeekday(task, date)) continue;
+    if (!task.isActive && typeof task.deactivatedAt === "string" && task.deactivatedAt) {
+      if (formatDate(new Date(task.deactivatedAt)) < date) continue;
+    }
     const done = completionByTaskId.get(task.id);
     rows.push({
       taskId: task.id,

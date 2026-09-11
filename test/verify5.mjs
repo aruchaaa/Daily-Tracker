@@ -77,6 +77,9 @@ const screenSettings = await import(base + "js/ui/screenSettings.js");
 const installPrompt = await import(base + "js/ui/installPrompt.js");
 const toast = await import(base + "js/ui/toast.js");
 const i18n = await import(base + "js/core/i18n.js");
+const repeatDays = await import(base + "js/core/repeatDays.js");
+const weeklySummary = await import(base + "js/core/weeklySummary.js");
+const monthlyReport = await import(base + "js/core/monthlyReport.js");
 
 let fail = 0;
 const assert = (cond, msg) => { console.log((cond ? "PASS" : "FAIL") + ": " + msg); if (!cond) fail++; };
@@ -154,6 +157,7 @@ assert(rows.length === 3, `Tasks screen renders ${rows.length} rows`);
 const handles = collect(c, "drag-handle");
 assert(handles.length === 3, `drag handles present on unscheduled tasks (${handles.length})`);
 assert(rows.every((r) => r.attrs["data-task-id"]), "rows carry data-task-id");
+assert(Boolean(findNode(c, "repeat-picker")), "Tasks form shows the weekly-repeat day picker");
 
 // ---- Schedule conflicts ------------------------------------------------------
 const schedule = await import(base + "js/core/schedule.js");
@@ -195,6 +199,8 @@ assert(Boolean(findNode(c, "year-grid")), "Report has year grid");
 const yearTiles = collect(c, "year-tile");
 assert(yearTiles.length === 12, "year grid has 12 month tiles");
 assert(Boolean(findByText(c, "Export CSV")), "CSV export button present");
+assert(Boolean(findByText(c, "Export All (CSV)")), "all-history export button present");
+assert(Boolean(findNode(c, "week-summary")), "Report renders the weekly breakdown section");
 const printArea = collect(c, "report-result")[0];
 assert(Boolean(printArea) && printArea.attrs.id === "report-print-area", "print area id present");
 
@@ -375,6 +381,80 @@ let pendingFound = null;
 const walkPending = (n) => { if (hasClass(n, "history-item--pending")) pendingFound = n; for (const ch of n.children || []) { if (ch) walkPending(ch); } };
 walkPending(c);
 assert(Boolean(pendingFound), "day view renders a pending row with history-item--pending");
+
+// ---- Weekly repeat schedule (repeatDays) --------------------------------------
+assert(repeatDays.weekdayOf("2026-01-01") === 4 && repeatDays.weekdayOf("2026-06-10") === 3, "weekdayOf returns the local weekday (Thu=4, Wed=3)");
+assert(repeatDays.appliesOnWeekday({}, "2026-01-01") === true, "task without repeatDays applies every day");
+assert(repeatDays.appliesOnWeekday({ repeatDays: [4] }, "2026-01-01") === true, "task applies on a listed weekday");
+assert(JSON.stringify(repeatDays.normalizeRepeatDays([5, 1, 5, 9, -1])) === "[1,5]", "normalizeRepeatDays keeps only valid unique weekday ints");
+
+// ---- tasksRepo carries repeatDays + stamps deactivatedAt ------------------------
+const tRep = await tasksRepo.createTask({ name: "Weekday Gym", expValue: 10, repeatDays: [1, 3, 5] });
+const tRepFresh = (await tasksRepo.getAllTasks()).find((t) => t.id === tRep.id);
+assert(JSON.stringify(tRepFresh.repeatDays) === "[1,3,5]", "createTask stores normalized repeatDays");
+await tasksRepo.updateTask(tRep.id, { repeatDays: [0, 7] });
+const tRep2 = (await tasksRepo.getAllTasks()).find((t) => t.id === tRep.id);
+assert(JSON.stringify(tRep2.repeatDays) === "[0]", "updateTask normalizes repeatDays (invalid 7 dropped)");
+await tasksRepo.updateTask(tRep.id, { isActive: false });
+const tRep3 = (await tasksRepo.getAllTasks()).find((t) => t.id === tRep.id);
+assert(typeof tRep3.deactivatedAt === "string", "deactivating a task stamps deactivatedAt");
+await tasksRepo.updateTask(tRep.id, { isActive: true });
+const tRep4 = (await tasksRepo.getAllTasks()).find((t) => t.id === tRep.id);
+assert(tRep4.deactivatedAt === null, "reactivating a task clears deactivatedAt");
+
+// ---- Day record respects repeatDays + the deactivation clamp -------------------
+const day2 = "2026-06-10";
+const wd6 = repeatDays.weekdayOf(day2);
+const tWeekdayOn = await tasksRepo.createTask({ name: "On Day", expValue: 2, repeatDays: [wd6] });
+const tWeekdayOff = await tasksRepo.createTask({ name: "Off Day", expValue: 2, repeatDays: [(wd6 + 1) % 7] });
+const tDeactB4 = await tasksRepo.createTask({ name: "Gone June 1", expValue: 2 });
+const tDeactSame = await tasksRepo.createTask({ name: "Gone June 10", expValue: 2 });
+await tasksRepo.updateTask(tWeekdayOn.id, { createdAt: "2026-05-20T04:00:00.000Z" });
+await tasksRepo.updateTask(tWeekdayOff.id, { createdAt: "2026-05-20T04:00:00.000Z" });
+await tasksRepo.updateTask(tDeactB4.id, { createdAt: "2026-05-20T04:00:00.000Z", isActive: false, deactivatedAt: "2026-06-01T00:00:00.000Z" });
+await tasksRepo.updateTask(tDeactSame.id, { createdAt: "2026-05-20T04:00:00.000Z", isActive: false, deactivatedAt: "2026-06-10T12:00:00.000Z" });
+const recDays = await histCore.getDayRecord(day2);
+const recIds = new Set(recDays.rows.map((r) => r.taskId));
+assert(recIds.has(tWeekdayOn.id), "task repeating on the day's weekday is listed");
+assert(recIds.has(tWeekdayOff.id) === false, "task not repeating on the day's weekday is excluded");
+assert(recIds.has(tDeactB4.id) === false, "task deactivated before the day is excluded");
+assert(recIds.has(tDeactSame.id), "task deactivated on the day itself is still listed");
+
+// ---- Monthly report denominator is weekday + deactivation aware -----------------
+const augStart = new Date(2026, 7, 1);
+const augEnd = new Date(2026, 7, 31);
+assert(monthlyReport.daysTaskExistedInRange({ createdAt: "2026-08-01T00:00:00Z", isActive: true }, augStart, augEnd) === 31, "every-day task counts every day of August");
+assert(monthlyReport.daysTaskExistedInRange({ createdAt: "2026-08-01T00:00:00Z", isActive: true, repeatDays: [0] }, augStart, augEnd) === 5, "Sunday-only task counts 5 Sundays in August");
+assert(monthlyReport.daysTaskExistedInRange({ createdAt: "2026-08-01T00:00:00Z", isActive: true, repeatDays: [1, 3, 5] }, augStart, augEnd) === 13, "Mon/Wed/Fri task counts 13 days in August");
+assert(monthlyReport.daysTaskExistedInRange({ createdAt: "2026-08-15T00:00:00Z", isActive: true, repeatDays: [1, 2, 3, 4, 5] }, augStart, augEnd) === 11, "Mon-Fri task created on 08-15 counts 11 weekdays");
+assert(monthlyReport.daysTaskExistedInRange({ createdAt: "2026-08-01T00:00:00Z", isActive: false, deactivatedAt: "2026-08-10T00:00:00Z" }, augStart, augEnd) === 10, "task deactivated 08-10 counts only the days through the 10th");
+
+// ---- Weekly summary + best day ---------------------------------------------------
+const augComps = [
+  { date: "2026-08-03", expAwarded: 10 },
+  { date: "2026-08-17", expAwarded: 5 },
+  { date: "2026-08-24", expAwarded: 5 },
+];
+const wsum = weeklySummary.getWeeklySummary(augComps, 2026, 8);
+assert(wsum.weeks.length === 6, "August breaks into 6 Monday-start buckets");
+const w3 = wsum.weeks.find((w) => w.start === "2026-08-03");
+assert(w3 && w3.done === 1 && w3.exp === 10, "week bucket tallies done + EXP");
+assert(wsum.weeks.reduce((s, w) => s + w.exp, 0) === 20, "week buckets sum to the month's EXP");
+assert(wsum.bestDay && wsum.bestDay.day === 1 && Math.abs(wsum.bestDay.rate - 0.6) < 1e-9, "best day is Monday at a 60% completion rate");
+assert(weeklySummary.getWeeklySummary([], 2026, 8).bestDay === null, "no completions means no best day");
+
+// ---- All-history CSV ----------------------------------------------------------------
+const allCsv = csvExport.buildAllCSV([
+  { id: "2026-08-20_x", date: "2026-08-20", taskId: "x", taskName: "Gym", expAwarded: 10, completedAt: "2026-08-20T03:00:00.000Z" },
+]);
+assert(allCsv.includes("Date,Task Name,EXP Earned,Time"), "all-history CSV has the standard header");
+assert(allCsv.includes("2026-08-20") && allCsv.includes("Gym"), "all-history CSV contains completion rows");
+
+// ---- Home recap + streak chip ----------------------------------------------------------
+c = new FakeNode("div");
+await screenHome.renderHome(c);
+assert(Boolean(findNode(c, "home-yesterday")), "Home shows the always-visible yesterday recap pill");
+assert(Boolean(findNode(c, "streak-chip")), "Home shows the current-streak chip when a streak is active");
 
 console.log(fail === 0 ? "ALL VERIFIED" : `${fail} FAILURES`);
 process.exit(fail ? 1 : 0);

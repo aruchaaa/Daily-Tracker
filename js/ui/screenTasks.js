@@ -1,11 +1,12 @@
 import * as tasksRepo from "../db/tasksRepo.js";
 import * as notesRepo from "../db/notesRepo.js";
 import { findTimeConflict } from "../core/schedule.js";
+import { normalizeRepeatDays } from "../core/repeatDays.js";
 import { getTodayDateString } from "../utils.js";
 import { playSave, playError, playToggle, playDelete, playUndo, playOpen } from "../core/sounds.js";
-import { el, buildEmptyState, formatTimeRange } from "./components.js";
+import { el, buildEmptyState, formatTimeRange, repeatLabel } from "./components.js";
 import { showConfirmDialog, showToast } from "./toast.js";
-import { t } from "../core/i18n.js";
+import { t, dayShortName } from "../core/i18n.js";
 
 export async function renderTasks(container) {
   container.innerHTML = "";
@@ -57,6 +58,7 @@ function buildAddForm(container) {
   });
   const startInput = el("input", { type: "time", class: "input input--time" });
   const endInput = el("input", { type: "time", class: "input input--time" });
+  const repeatPicker = buildRepeatPicker();
   const errorMsg = el("p", { class: "form-error" });
 
   const form = el(
@@ -100,6 +102,7 @@ function buildAddForm(container) {
             expValue: exp,
             startTime: startInput.value,
             endTime: endInput.value,
+            repeatDays: repeatPicker.getValue(),
           });
           playSave();
           renderTasks(container);
@@ -134,11 +137,43 @@ function buildAddForm(container) {
           ]),
         ]),
       ]),
+      el("div", { class: "task-form__group" }, [
+        el("label", { class: "task-form__label", text: t("tasks.labelRepeat") }),
+        repeatPicker.el,
+      ]),
       el("button", { type: "submit", class: "btn btn--primary", text: t("tasks.add") }),
       errorMsg,
     ]
   );
   return form;
+}
+
+/** 7 chip toggles (Sun..Sat) for the weekly-repeat schedule. All selected
+ *  by default = "every day" ([]); clearing a day removes it from the list.
+ *  Selecting none / all both normalize to [] = every day. */
+function buildRepeatPicker(initialDays) {
+  const full = [0, 1, 2, 3, 4, 5, 6];
+  const selected = new Set(
+    Array.isArray(initialDays) && initialDays.length > 0 ? normalizeRepeatDays(initialDays) : full
+  );
+  const list = el("div", { class: "repeat-picker" });
+  full.forEach((w) => {
+    const chip = el("button", {
+      type: "button",
+      class: `repeat-picker__day chip ${selected.has(w) ? "chip--on" : ""}`,
+      text: dayShortName(w),
+      onclick: () => {
+        if (selected.has(w)) selected.delete(w);
+        else selected.add(w);
+        chip.classList.toggle("chip--on", selected.has(w));
+      },
+    });
+    list.appendChild(chip);
+  });
+  return {
+    el: list,
+    getValue: () => (selected.size === 7 || selected.size === 0 ? [] : [...selected].sort((a, b) => a - b)),
+  };
 }
 
 function buildTaskRow(task, container, todayNoteByTaskId) {
@@ -152,6 +187,7 @@ function buildTaskRow(task, container, todayNoteByTaskId) {
   const todayNote = todayNoteByTaskId.get(task.id) || "";
   const nameCell = el("a", { href: `#/task/${task.id}`, class: "task-manage-row__name task-manage-row__name--link" }, [
     task.name,
+    el("span", { class: "task-manage-row__repeat", text: repeatLabel(task) }),
     timeRange ? el("span", { class: "task-row__time", text: timeRange }) : null,
     todayNote
       ? el("span", {
@@ -253,6 +289,7 @@ function buildTaskRow(task, container, todayNoteByTaskId) {
           expValue: task.expValue,
           startTime: task.startTime,
           endTime: task.endTime,
+          repeatDays: task.repeatDays || [],
         });
         playSave();
         showToast(t("tasks.duplicated", { name: task.name }), "success");
@@ -291,6 +328,7 @@ function enterEditMode(row, task, container) {
   const endInput = el("input", { type: "time", class: "input input--time" });
   startInput.value = task.startTime || "";
   endInput.value = task.endTime || "";
+  const repeatPicker = buildRepeatPicker(task.repeatDays);
   const errorMsg = el("p", { class: "form-error" });
 
   const saveBtn = el("button", {
@@ -333,6 +371,7 @@ function enterEditMode(row, task, container) {
           expValue: exp,
           startTime: startInput.value,
           endTime: endInput.value,
+          repeatDays: repeatPicker.getValue(),
         });
         playSave();
         showToast(t("tasks.saved"), "success");
@@ -374,6 +413,10 @@ function enterEditMode(row, task, container) {
           ]),
         ]),
       ]),
+    ]),
+    el("div", { class: "task-form__group" }, [
+      el("label", { class: "task-form__label", text: t("tasks.labelRepeat") }),
+      repeatPicker.el,
     ]),
     el("div", { class: "task-form__actions" }, [saveBtn, cancelBtn]),
     errorMsg

@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v55`. The app also auto-reloads itself once when a newer
+`daily-tracker-v56`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,30 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v56)
+
+- **Weekly repeat schedule** (Tasks tab): every task can now repeat on
+  chosen days of the week (Mon–Sun chips; all selected = every day, the old
+  behavior). Home, History, the nightly reminders, and the monthly report
+  all honor it — a Mon/Wed/Fri task only counts (and only shows on) those
+  weekdays, and per-task detail shows its recurring days.
+- **Deactivation tracking** ("archive" a task): tasks toggled off now stop
+  appearing in History and the monthly report after the day they were
+  deactivated, instead of lingering as permanently "not done". Reactivating
+  restores them. A deactivated task still shows on its final day.
+- **Home quick wins**: an always-visible "Yesterday" recap pill (done/total
+  + EXP, or a "lets get moving" nudge when nothing was done) and a
+  current-streak chip when you're on a roll; afternoon greeting icon fixed.
+- **Weekly breakdown on Report**: each month now shows a per-week bar row
+  (Mon-Sun buckets) plus the **best day of the month** with its completion
+  rate.
+- **Export All (CSV)**: a second button on Report downloads the *entire*
+  completion history (sorted by date) as one CSV, alongside the
+  per-month export.
+- **Backup format v4**: backups now carry `repeatDays` and `deactivatedAt`;
+  older v3 backups still import (legacy rows gain the "every day" default).
+- New core modules `repeatDays.js` and `weeklySummary.js` (precached).
 
 ## What's new (cache v55)
 

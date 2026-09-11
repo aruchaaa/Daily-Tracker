@@ -32,17 +32,38 @@ export function buildMonthCSV(completions) {
   return rows.map((r) => r.map(escapeCsv).join(",")).join("\r\n");
 }
 
-export async function exportMonthCSV(yearMonth) {
-  const [year, month] = yearMonth.split("-").map(Number);
-  const completions = await completionsRepo.getCompletionsForMonth(year, month);
-  const csv = "\ufeff" + buildMonthCSV(completions);
+/** Pure CSV builder for every completion record the device has, oldest
+ *  first (the caller sorts; this only renders rows). */
+export function buildAllCSV(completions) {
+  const rows = [
+    ["Date", "Task Name", "EXP Earned", "Time"],
+    ...completions.map((c) => [c.date, c.taskName, c.expAwarded, formatCompletedTime(c.completedAt)]),
+  ];
+  return rows.map((r) => r.map(escapeCsv).join(",")).join("\r\n");
+}
+
+function downloadCSV(csv, filename) {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `daily-tracker-${yearMonth}.csv`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+export async function exportMonthCSV(yearMonth) {
+  const [year, month] = yearMonth.split("-").map(Number);
+  const completions = await completionsRepo.getCompletionsForMonth(year, month);
+  downloadCSV("\ufeff" + buildMonthCSV(completions), `daily-tracker-${yearMonth}.csv`);
+}
+
+/** Export THE FULL history as one CSV, oldest completion first. */
+export async function exportAllCSV() {
+  const completions = await completionsRepo.getAllCompletions();
+  completions.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const date = new Date().toISOString().slice(0, 10);
+  downloadCSV("\ufeff" + buildAllCSV(completions), `daily-tracker-all-history-${date}.csv`);
 }

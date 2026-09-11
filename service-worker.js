@@ -6,7 +6,7 @@
 // pure cache-first strategy, at the cost of a network round-trip on every
 // online load (irrelevant here since there's no real data to wait on).
 
-const CACHE_NAME = "daily-tracker-v55";
+const CACHE_NAME = "daily-tracker-v56";
 
 const APP_SHELL = [
   "./",
@@ -34,6 +34,8 @@ const APP_SHELL = [
   "./js/core/theme.js",
   "./js/core/taskStats.js",
   "./js/core/schedule.js",
+  "./js/core/repeatDays.js",
+  "./js/core/weeklySummary.js",
   "./js/core/notifications.js",
   "./js/core/achievements.js",
   "./js/core/sounds.js",

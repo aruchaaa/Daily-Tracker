@@ -26,6 +26,8 @@ const modules = [
   "js/core/theme.js",
   "js/core/taskStats.js",
   "js/core/schedule.js",
+  "js/core/repeatDays.js",
+  "js/core/weeklySummary.js",
   "js/core/notifications.js",
   "js/core/achievements.js",
   "js/core/sounds.js",

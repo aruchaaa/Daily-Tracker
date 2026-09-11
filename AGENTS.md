@@ -37,7 +37,7 @@ from `test/package.json`:
 cd daily-tracker/test
 npm install             # once, first time (creates test/node_modules)
 node verify5.mjs        # full regression suite — expect "ALL VERIFIED"
-node linkall.mjs        # module-import check — expect "35 ok" + app.js
+node linkall.mjs        # module-import check — expect "37 ok" + app.js
                         # (app.js needs a DOM, so its failure is expected)
 ```
 
@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v55`). The manifest is
+  reference in `README.md` (currently `v56`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -81,7 +81,8 @@ daily-tracker/
     │   ├── db.js         lazy single connection (DailyTrackerDB v3), promisify wrappers,
     │   │                 onversionchange close + cache reset; v3 migration moves legacy
     │   │                 task.notes into today's taskNotes record
-    │   ├── tasksRepo.js  task CRUD, sortOrder, setTaskOrder, restoreTask (undo)
+    │   ├── tasksRepo.js  task CRUD (repeatDays + deactivatedAt fields),
+    │   │                 sortOrder, setTaskOrder, restoreTask (undo)
     │   │                 moveTask removed (dead code); setTaskOrder kept for harness
     │   ├── completionsRepo.js  records keyed "<date>_<taskId>"; toggleCompletion is the
     │   │                 single EXP chokepoint (multi-store tx, snapshot, serialized)
@@ -91,13 +92,20 @@ daily-tracker/
     │   ├── sleepRepo.js  per-day sleep hours (upsert + range)
     │   └── notesRepo.js  per-day task notes keyed "<date>_<taskId>" (getNote,
     │                     getNotesForDate, setNote — blank deletes that day only)
-    ├── core/             business logic, NO DOM (15 modules)
+    ├── core/             business logic, NO DOM (17 modules)
     │   ├── expEngine.js      progressive curve: level N→N+1 = 100 + (N-1)*20
-    │   ├── dailyTracker.js   today's state (join tasks+completions, sort, totals)
+    │   ├── dailyTracker.js   today's state (join tasks+completions, sort, totals;
+    │   │                     active + repeat-day filter applied here)
     │   ├── history.js        day record = every task that existed that day
-    │   │                     (done + skipped with 0-EXP rows + snapshot rows)
+    │   │                     (done + skipped with 0-EXP rows + snapshot rows;
+    │   │                     repeat-day filtered; deactivated tasks drop out the
+    │   │                     day after their deactivatedAt)
     │   ├── streak.js         longest + current streak (UTC-midnight diffing)
-    │   ├── monthlyReport.js  % (per-task existence-weighted), grade, tally
+    │   ├── monthlyReport.js  % (per-task existence-weighted), grade, tally;
+    │   │                     daysTaskExistedInRange = weekday + deactivation aware
+    │   ├── repeatDays.js     weekdayOf / appliesOnWeekday / hasRepeatDays /
+    │   │                     normalizeRepeatDays (0=Sun..6=Sat, [] = every day)
+    │   ├── weeklySummary.js  per-week (Mon-start) buckets + best day for Report
     │   ├── profileStats.js   profile aggregation (reuses generateReport)
     │   ├── expTrend.js       last-N-days EXP series (zero-filled)
     │   ├── sleepTrend.js     last-N-days sleep series
@@ -136,15 +144,17 @@ daily-tracker/
         ├── backupManager.js  versioned JSON export/import (replace/merge)/clear
         └── csvExport.js      pure buildMonthCSV + exportMonthCSV (UTF-8 BOM)
 └── test/                  Node regression harness (lives in repo so Temp
-                          cleanups can't wipe it): verify5.mjs (72 asserts),
-                          linkall.mjs (35 ok + app.js), package.json
+                          cleanups can't wipe it): verify5.mjs (112 asserts),
+                          linkall.mjs (37 ok + app.js), package.json
                           installs fake-indexeddb
 ```
 
 ## Data model (IndexedDB `DailyTrackerDB`, v3)
 
 - **tasks** — keyPath `id`; name, expValue, isActive, optional
-  startTime/endTime, sortOrder, createdAt.
+  startTime/endTime, sortOrder, createdAt, optional repeatDays (array of
+  ints 0=Sun..6=Sat; missing = every day) and deactivatedAt (ISO string,
+  stamped when isActive flips false, cleared on reactivation).
 - **completions** — keyPath `id` = `"<date>_<taskId>"` (enforces
   one-per-task-per-day); indexes on `date` and `taskId`; snapshots
   `taskName`/`expAwarded`/`completedAt` at completion time so history and
@@ -587,15 +597,21 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **83** (hard-tier seeded 503-day range +
+- Current assertion count is **112** (hard-tier seeded 503-day range +
   backfilled 40-day tail, the 12-assertion day-record block added at SW
-  v36, the 2-assertion badge-i18n regression block added at SW v44, and
-  the 17-assertion install block added at SW v55: the Install App button
+  v36, the 2-assertion badge-i18n regression block added at SW v44, the
+  17-assertion install block added at SW v55: the Install App button
   always renders for non-installed users, the manual guide starts `hidden`
   and a no-event click reveals it, `installApp()` resolves quietly — never
   a failure/dead-end —, prompts that resolve or throw both clear the event
   safely (no hangs, no toasts), and `appinstalled` sets `hasInstalled()` so
-  installed sessions render a status line instead of the button). Don't
+  installed sessions render a status line instead of the button, and the
+  29-assertion v56 block: repeatDays unit tests, tasksRepo
+  repeatDays/deactivatedAt round-trips, the June-10 weekday + deactivation
+  clamp on day records, the five August 2026 `daysTaskExistedInRange`
+  denominators, the Monday-bucket weekly summary + best-day tests,
+  all-history CSV, the Tasks repeat-picker, the Report all-history button +
+  `week-summary` section, and the Home yesterday pill + streak chip). Don't
   assert exact intra-group row order in the day-record tests: sortOrder
   uses `Date.now()` so rapid `createTask` calls can tie, and `getAllTasks`
   tie-breaks by uuid key order — assert membership/sets and rely on the
@@ -1284,3 +1300,57 @@ removed, doc sync).
 - Verified: `node --check` all edited JS; verify5 ALL VERIFIED (83);
   linkall 35 ok/1 fail (app.js DOM-only); CSS braces balanced; i18n scan
   clean. CACHE_NAME → v55.
+
+### Per-task weekly schedule + deactivation + Home quick wins + Report weekly breakdown + all-history CSV (SW v56)
+Full feature pass; backup bumped v3 → v4, DB schema unchanged (v3).
+- **`repeatDays` on tasks** (`core/repeatDays.js` new, `db/tasksRepo.js`):
+  optional array of ints 0=Sun..6=Sat on a task; missing/empty = every day
+  (the historical default). UI: 7-chip picker (all-selected ↔ every day;
+  none-selected also normalizes to every day). Stored as a normalized
+  unique-sorted array only when non-empty.
+- **`deactivatedAt` on tasks** (`tasksRepo.js`): ISO string stamped
+  automatically in `updateTask` when `isActive` flips false (skipped when
+  the caller already provides one); cleared to `null` on reactivation.
+  Legacy rows without it keep the old "always visible" behavior.
+- **Weekday + deactivation filtering wired through**: `dailyTracker`
+  (filters `allTasks` for the Home tab), `notifications` (skips reminders
+  for non-applying weekdays), `history.getDayRecord` (exclude non-applying
+  weekday + days after `deactivatedAt`; deactivation day itself still
+  included), `monthlyReport.daysTaskExistedInRange` (now exported for
+  tests; counts only repeat weekdays within created..deactivation range).
+- **Home quick wins** (`screenHome.js`): always-visible yesterday recap
+  pill (3 i18n variants: done+exp, done-zero, no-tasks-yesterday) +
+  current-streak chip (`calculateCurrentStreak`) when streak > 0.
+  Afternoon greeting icon corrected.
+- **Weekly breakdown + best day on Report** (`core/weeklySummary.js` new,
+  `screenReport.js`): `getWeeklySummary(completions, year, month)` returns
+  Monday-start week buckets `{start, end, done, exp}` + best day
+  `{day, rate, done, days}`. UI: tally-row bars with best-day line.
+- **All-history CSV** (`backup/csvExport.js`): `buildAllCSV` +
+  `exportAllCSV` (sorted by date asc, no UTF-8 BOM, filename
+  `daily-tracker-all-history-<date>.csv`); a new "Export All (CSV)" button
+  on Report beside the per-month export.
+- **Backup v4** (`backup/backupManager.js`): `BACKUP_VERSION` 3 → 4;
+  imports `normalizeRepeatDays`; cleanTask sanitizes `repeatDays` (only
+  when non-empty) and valid `deactivatedAt` string; v3 backups still load.
+- **Per-task detail** (`screenTaskDetail.js`): repeat line rendered when
+  `hasRepeatDays`.
+- **Manage Tasks** (`screenTasks.js`): repeat label `<span>` on every row;
+  dupBtn carries repeatDays through the clone.
+- **i18n** (`core/i18n.js`): `home.yesterdaySummary/yesterdayZero/
+  yesterdayNoTasks/currentStreak`, `tasks.labelRepeat/everyDay`,
+  `report.exportAllCsv/csvAllDownloaded/weeklyBreakdown/bestDay` (EN + ID).
+- **CSS** (`components.css`): `.repeat-picker*`, `.task-manage-row__repeat`,
+  `.week-summary__best`, `.home-yesterday*`, `.streak-chip*`.
+- **New modules** (`core/repeatDays.js`, `core/weeklySummary.js`): added
+  to SW `APP_SHELL`, `test/linkall.mjs`. linkall → 37 ok / 1 fail
+  (app.js DOM-only).
+- **Harness** (`test/verify5.mjs`): +29 assertions — repeatDays unit
+  tests, tasksRepo repeatDays/deactivatedAt, the June-10 weekday +
+  deactivation clamp, five `daysTaskExistedInRange` August 2026
+  denominators, weeklySummary buckets/bestDay, `buildAllCSV`, Tasks
+  repeat-picker, Report Export All + `week-summary`, Home yesterday pill +
+  streak chip. 83 → **112**, ALL VERIFIED.
+- Verified: `node --check` all edited JS; verify5 ALL VERIFIED (112);
+  linkall 37 ok/1 fail (app.js DOM-only); CSS brace balance; i18n scan.
+  CACHE_NAME → v56.

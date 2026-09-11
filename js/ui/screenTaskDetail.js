@@ -3,9 +3,10 @@ import * as notesRepo from "../db/notesRepo.js";
 import { getTaskStats } from "../core/taskStats.js";
 import { scheduleTodayReminders } from "../core/notifications.js";
 import { getTodayDateString } from "../utils.js";
+import { hasRepeatDays } from "../core/repeatDays.js";
 import { playSave, playError } from "../core/sounds.js";
 import { t } from "../core/i18n.js";
-import { el, buildHeatmap, buildEmptyState, statCard, formatTimeRange } from "./components.js";
+import { el, buildHeatmap, buildEmptyState, statCard, formatTimeRange, repeatLabel } from "./components.js";
 import { showToast } from "./toast.js";
 
 export async function renderTaskDetail(container, taskId) {
@@ -43,6 +44,7 @@ export async function renderTaskDetail(container, taskId) {
     // an optional element needs the spread-empty-array guard instead of a
     // bare ternary.
     ...(timeRange ? [el("p", { class: "task-detail-time", text: timeRange })] : []),
+    ...(hasRepeatDays(task) ? [el("p", { class: "task-detail-time", text: repeatLabel(task) })] : []),
     buildNotesCard(task, todayNote),
     buildReminderCard(task),
     grid,
