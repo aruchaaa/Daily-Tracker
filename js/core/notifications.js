@@ -1,7 +1,10 @@
 import * as tasksRepo from "../db/tasksRepo.js";
+import * as completionsRepo from "../db/completionsRepo.js";
 import * as metaRepo from "../db/metaRepo.js";
 import { getTodayDateString } from "../utils.js";
 import { appliesOnWeekday } from "./repeatDays.js";
+import { nudgeTimesForDate } from "./push.js";
+import { t } from "./i18n.js";
 
 /**
  * Schedule reminders for today's tasks. Each task can carry its own
@@ -40,12 +43,39 @@ export async function scheduleTodayReminders() {
       timers.add(
         setTimeout(() => {
           try {
-            new Notification("Daily Tracker", {
-              body: `Time for: ${name}`,
+            new Notification(t("push.title"), {
+              body: name,
               icon: "icons/icon-192.png",
             });
           } catch (err) {
             console.warn("Notification failed:", err);
+          }
+        }, delay)
+      );
+    }
+
+    // Three generic daily nudges (morning / afternoon / evening) on the same
+    // deterministic random minutes as the push plan. At fire time we re-check
+    // the day's tasks so a nudge is skipped once everything is done.
+    for (const time of nudgeTimesForDate(today)) {
+      const [h, m] = time.split(":").map(Number);
+      const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+      const delay = at - now;
+      if (delay <= 0) continue; // already passed today
+
+      timers.add(
+        setTimeout(async () => {
+          try {
+            const fresh = (await tasksRepo.getActiveTasks()).filter((task) => appliesOnWeekday(task, today));
+            const completed = await completionsRepo.getCompletionsForDate(today);
+            const done = new Set(completed.map((c) => c.taskId));
+            if (!fresh.some((task) => !done.has(task.id))) return;
+            new Notification(t("nudge.title"), {
+              body: t("nudge.body"),
+              icon: "icons/icon-192.png",
+            });
+          } catch (err) {
+            console.warn("Nudge notification failed:", err);
           }
         }, delay)
       );

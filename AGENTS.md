@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v62`). The manifest is
+  reference in `README.md` (currently `v63`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -110,12 +110,15 @@ daily-tracker/
     │   ├── expTrend.js       last-N-days EXP series (zero-filled)
     │   ├── sleepTrend.js     last-N-days sleep series
     │   ├── achievements.js   20 declarative badges, computeStats, evaluate, state
-    │   ├── notifications.js  in-app reminder timers (reminderTime || startTime)
-    │   ├── push.js           Web Push core: VAPID public key const, pure
-    │   │                     buildReminderPlan (reminderTime/startTime, repeat-day
-    │   │                     filtered, skips done, 14-day horizon, epoch-ms),
-    │   │                     buildTodayPlan, supportsPush, enable/disablePush,
-    │   │                     uploadPlan / initPush / sendTestPush
+│   ├── notifications.js  in-app reminder timers (reminderTime || startTime,
+│   │                     body = task name) + the 3 daily generic nudges
+│   ├── push.js           Web Push core: VAPID public key const, pure
+│   │                     buildReminderPlan (reminderTime/startTime, repeat-day
+│   │                     filtered, skips done, 14-day horizon, epoch-ms;
+│   │                     opt-in `nudges:true` adds 3 deterministic-random
+│   │                     daily nudges via nudgeTimesForDate/NUDGE_WINDOWS),
+│   │                     buildTodayPlan, supportsPush, enable/disablePush,
+│   │                     uploadPlan / initPush / sendTestPush
     │   ├── schedule.js       findTimeConflict (half-open [start,end) intervals)
     │   ├── sounds.js         11 synthesized effects (click/nav/tick/uncheck/save/
     │   │                     open/toggle/delete/undo/error/level-up), no audio
@@ -161,7 +164,7 @@ daily-tracker/
 ├── package.json            root manifest ("type": "module") — single dep
 │                           `web-push`, used only by api/; client stays dep-free
 ├── test/                  Node regression harness (lives in repo so Temp
-                          cleanups can't wipe it): verify5.mjs (124 asserts),
+                          cleanups can't wipe it): verify5.mjs (133 asserts),
                           linkall.mjs (38 ok + app.js), package.json
                           installs fake-indexeddb
 ```
@@ -614,7 +617,7 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **124** (hard-tier seeded 503-day range +
+- Current assertion count is **133** (hard-tier seeded 503-day range +
   backfilled 40-day tail, the 12-assertion day-record block added at SW
   v36, the 2-assertion badge-i18n regression block added at SW v44, the
   17-assertion install block added at SW v55: the Install App button
@@ -634,7 +637,13 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   skips past times, skips non-applying weekdays, skips tasks done today,
   prefers reminderTime over startTime, sorts ascending, covers the horizon
   with `date_taskId` ids, and pushes in EN; plus the VAPID key is present
-  and `supportsPush()` is false in Node). Don't
+  and `supportsPush()` is false in Node, and the 9-assertion nudge block
+  added at SW v63: `nudgeTimesForDate` returns three times that each land
+  in their `NUDGE_WINDOWS` slot, is deterministic per date, `nudges:true`
+  adds the day's three nudges, the nudge body is generic (no task names),
+  nudges are skipped once all of today's tasks are done and on days with
+  no tasks, only appear when requested, and the per-task body is just the
+  task name). Don't
   assert exact intra-group row order in the day-record tests: sortOrder
   uses `Date.now()` so rapid `createTask` calls can tie, and `getAllTasks`
   tie-breaks by uuid key order — assert membership/sets and rely on the
@@ -1611,3 +1620,35 @@ new dependency (`web-push`) is server-side.
   `package.json` is valid JSON. One-time maintainer setup (Upstash DB,
   VAPID keys via `npx web-push generate-vapid-keys`, env/secrets) is
   documented in the README v62 note. CACHE_NAME → v62.
+
+### Daily nudges + task-name reminder text (SW v63)
+User follow-up to v62: reminders were too sparse (only per-task times) and
+the wording was generic. No DB/schema/backup change (still DB v3, backup v4).
+- **Three generic daily nudges** (`js/core/push.js`): `NUDGE_WINDOWS` =
+  morning 07:00–09:00, afternoon 12:00–15:00, evening 19:00–21:00; the exact
+  minute is randomized by `nudgeTimesForDate(dateStr)` via a seeded RNG
+  (FNV-1a hash + mulberry32) so the same date always yields the same three
+  times — the in-app timers and the uploaded push plan agree, and a re-upload
+  never shuffles the day's nudges. Nudges are **not user-editable** (only
+  individually scheduled tasks carry a settable time). `buildReminderPlan`
+  gained an opt-in `{ nudges: true }` option (default false, so the existing
+  harness calls are unchanged); `buildTodayPlan()` passes it. Nudges are
+  skipped for today when nothing is pending, and for any day with no
+  applicable task.
+- **In-app nudges** (`js/core/notifications.js`): alongside the per-task
+  timers, schedules the day's three nudges when `remindersEnabled`; at fire
+  time it re-reads active tasks + today's completions and skips the
+  notification if everything is done. Body is generic.
+- **Per-task text is now just the task name**: `push.body` changed from
+  "Time for: {name}" / "Waktunya: {name}" to `"{name}"` (EN + ID); the
+  in-app notification body likewise uses `task.name` and the title comes
+  from `t("push.title")`. New keys `nudge.title` / `nudge.body` (EN + ID).
+- Background delivery still requires the v62 Vercel/GitHub env setup; when
+  push is off, nudges still fire in-app while the tab is open.
+- **Harness** (`test/verify5.mjs`): +9 assertions (124 → **133**) — three
+  nudges a day, each inside its window, deterministic per date, `nudges:true`
+  adds them, nudge body stays generic, skipped when all done, none on a
+  taskless day, only when requested, and the per-task body equals the name.
+- Verified: `node --check` all edited JS; verify5 ALL VERIFIED (133);
+  linkall 38 ok/1 fail (app.js DOM-only); CSS untouched; README "What's new
+  (cache v63)" added. CACHE_NAME → v63.

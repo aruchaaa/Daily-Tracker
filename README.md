@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v62`. The app also auto-reloads itself once when a newer
+`daily-tracker-v63`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,21 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v63)
+
+- **Three daily nudges a day**: alongside the per-task reminders, the app
+  now sends three generic reminders (morning, afternoon, evening) at
+  randomized-but-fixed times per day, so you're prodded even on days with
+  no scheduled tasks. The exact minute is randomized per date (morning
+  07–09, afternoon 12–15, evening 19–21) and is not user-editable — only
+  individually scheduled tasks carry a settable time. A nudge is skipped
+  once every task that day is done (and on days with no tasks at all), and
+  it fires both as a background push (when push is enabled) and in-app while
+  the tab is open (when Reminders is enabled).
+- **Reminder text is the task name**: per-task reminders now show just the
+  task's name as the notification body (previously "Time for: …"), so the
+  notification is instantly recognizable at a glance.
 
 ## What's new (cache v62)
 

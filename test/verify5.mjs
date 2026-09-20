@@ -492,5 +492,38 @@ assert(pMulti[0].id === "2026-09-14_a", "plan id is date_taskId");
 assert(push.VAPID_PUBLIC_KEY.startsWith("B") && push.VAPID_PUBLIC_KEY.length > 80, "a VAPID public key is baked in");
 assert(push.supportsPush() === false, "push feature detection is false in Node");
 
+// ---- Daily nudges -------------------------------------------------------------------
+const nudgeDay = "2026-09-14";
+const nTimes = push.nudgeTimesForDate(nudgeDay);
+assert(nTimes.length === 3, "three nudges a day");
+assert(
+  nTimes.every((time, i) => {
+    const [h, m] = time.split(":").map(Number);
+    const mins = h * 60 + m;
+    return mins >= push.NUDGE_WINDOWS[i].start && mins < push.NUDGE_WINDOWS[i].end;
+  }),
+  "each nudge lands inside its morning/afternoon/evening window"
+);
+assert(JSON.stringify(push.nudgeTimesForDate(nudgeDay)) === JSON.stringify(nTimes), "nudge times are deterministic per date");
+const nFrom = new Date(2026, 8, 14, 0, 0, 0);
+const nPlan = push.buildReminderPlan([{ id: "a", name: "Gym", startTime: "08:00" }], {}, { from: nFrom, days: 1, nudges: true });
+assert(nPlan.filter((e) => e.id.includes("_nudge_")).length === 3, "plan includes the day's three nudges");
+assert(
+  nPlan.filter((e) => e.id.includes("_nudge_")).every((e) => e.body === i18n.t("nudge.body") && !e.body.includes("Gym")),
+  "nudge body is generic (no task names)"
+);
+assert(
+  push
+    .buildReminderPlan([{ id: "a", name: "Gym", startTime: "08:00" }], { [nudgeDay]: new Set(["a"]) }, { from: nFrom, days: 1, nudges: true })
+    .filter((e) => e.id.includes("_nudge_")).length === 0,
+  "nudges are skipped once all of today's tasks are done"
+);
+assert(push.buildReminderPlan([], {}, { from: nFrom, days: 1, nudges: true }).length === 0, "no nudges on a day with no tasks");
+assert(
+  push.buildReminderPlan([{ id: "a", name: "Gym", startTime: "08:00" }], {}, { from: nFrom, days: 1 }).filter((e) => e.id.includes("_nudge_")).length === 0,
+  "nudges only appear when explicitly requested"
+);
+assert(i18n.t("push.body", { name: "Gym" }) === "Gym", "per-task reminder body is just the task name");
+
 console.log(fail === 0 ? "ALL VERIFIED" : `${fail} FAILURES`);
 process.exit(fail ? 1 : 0);
