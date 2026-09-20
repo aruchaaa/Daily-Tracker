@@ -37,7 +37,7 @@ from `test/package.json`:
 cd daily-tracker/test
 npm install             # once, first time (creates test/node_modules)
 node verify5.mjs        # full regression suite — expect "ALL VERIFIED"
-node linkall.mjs        # module-import check — expect "37 ok" + app.js
+node linkall.mjs        # module-import check — expect "38 ok" + app.js
                         # (app.js needs a DOM, so its failure is expected)
 ```
 
@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v61`). The manifest is
+  reference in `README.md` (currently `v62`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -88,11 +88,11 @@ daily-tracker/
     │   │                 single EXP chokepoint (multi-store tx, snapshot, serialized)
     │   ├── metaRepo.js   flat key-value store (EXP total, name, theme, toggles,
     │   │                 achievements, moments, lastBackupAt, dailyTargetExp,
-    │   │                 onboardingDone)
+    │   │                 onboardingDone, pushEnabled, deviceId, pushSubscription)
     │   ├── sleepRepo.js  per-day sleep hours (upsert + range)
     │   └── notesRepo.js  per-day task notes keyed "<date>_<taskId>" (getNote,
     │                     getNotesForDate, setNote — blank deletes that day only)
-    ├── core/             business logic, NO DOM (17 modules)
+    ├── core/             business logic, NO DOM (18 modules)
     │   ├── expEngine.js      progressive curve: level N→N+1 = 100 + (N-1)*20
     │   ├── dailyTracker.js   today's state (join tasks+completions, sort, totals;
     │   │                     active + repeat-day filter applied here)
@@ -111,6 +111,11 @@ daily-tracker/
     │   ├── sleepTrend.js     last-N-days sleep series
     │   ├── achievements.js   20 declarative badges, computeStats, evaluate, state
     │   ├── notifications.js  in-app reminder timers (reminderTime || startTime)
+    │   ├── push.js           Web Push core: VAPID public key const, pure
+    │   │                     buildReminderPlan (reminderTime/startTime, repeat-day
+    │   │                     filtered, skips done, 14-day horizon, epoch-ms),
+    │   │                     buildTodayPlan, supportsPush, enable/disablePush,
+    │   │                     uploadPlan / initPush / sendTestPush
     │   ├── schedule.js       findTimeConflict (half-open [start,end) intervals)
     │   ├── sounds.js         11 synthesized effects (click/nav/tick/uncheck/save/
     │   │                     open/toggle/delete/undo/error/level-up), no audio
@@ -135,7 +140,8 @@ daily-tracker/
     │   ├── screenProfile.js    rename, trends, stats, achievements, share card canvas
     │   ├── screenHistory.js    month calendar + day detail, PDF via print
     │   ├── screenReport.js     monthly report, year grid, CSV, PDF
-    │   ├── screenSettings.js   install, theme/accent, toggles, backup, danger zone
+    │   ├── screenSettings.js   install, theme/accent, reminders, push, toggles,
+    │   │                       backup, danger zone
     │   ├── installPrompt.js    beforeinstallprompt stash + installApp + isInstalled/
     │   │                       isIOS/isAndroid helpers + onInstallPromptReady listeners
     │   └── toast.js           showToast (stack ≤4, optional action) +
@@ -143,9 +149,20 @@ daily-tracker/
     └── backup/
         ├── backupManager.js  versioned JSON export/import (replace/merge)/clear
         └── csvExport.js      pure buildMonthCSV + exportMonthCSV (UTF-8 BOM)
-└── test/                  Node regression harness (lives in repo so Temp
-                          cleanups can't wipe it): verify5.mjs (112 asserts),
-                          linkall.mjs (37 ok + app.js), package.json
+├── api/                    Vercel Functions (the ONLY server-side code)
+│   ├── _upstash.js         Upstash Redis REST helpers (get/set/del) — leading
+│   │                       underscore keeps it a module, not an endpoint
+│   ├── plan.js             POST {deviceId, subscription, plan} store/clear
+│   └── due.js              GET (Bearer CRON_SECRET) sends due pushes via
+│                           web-push; ?test=<deviceId> sends a manual test
+├── .github/workflows/
+│   └── cron.yml            GitHub Actions `*/5 * * * *` + workflow_dispatch
+│                           pings GET /api/due (beats Vercel Hobby's 1×/day)
+├── package.json            root manifest ("type": "module") — single dep
+│                           `web-push`, used only by api/; client stays dep-free
+├── test/                  Node regression harness (lives in repo so Temp
+                          cleanups can't wipe it): verify5.mjs (124 asserts),
+                          linkall.mjs (38 ok + app.js), package.json
                           installs fake-indexeddb
 ```
 
@@ -597,7 +614,7 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **112** (hard-tier seeded 503-day range +
+- Current assertion count is **124** (hard-tier seeded 503-day range +
   backfilled 40-day tail, the 12-assertion day-record block added at SW
   v36, the 2-assertion badge-i18n regression block added at SW v44, the
   17-assertion install block added at SW v55: the Install App button
@@ -613,7 +630,11 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   all-history CSV, the Tasks repeat-picker, the Report all-history button +
   `week-summary` section, and the Home yesterday pill, and
   the 1-assertion EN 3-letter short-day-name regression block added at SW
-  v57). Don't
+  v57, and the 12-assertion push block added at SW v62: buildReminderPlan
+  skips past times, skips non-applying weekdays, skips tasks done today,
+  prefers reminderTime over startTime, sorts ascending, covers the horizon
+  with `date_taskId` ids, and pushes in EN; plus the VAPID key is present
+  and `supportsPush()` is false in Node). Don't
   assert exact intra-group row order in the day-record tests: sortOrder
   uses `Date.now()` so rapid `createTask` calls can tie, and `getAllTasks`
   tie-breaks by uuid key order — assert membership/sets and rely on the
@@ -1529,3 +1550,64 @@ backup change (still DB v3, backup v4).
 - Verified: `node --check` on edited JS; verify5 ALL VERIFIED (112);
   linkall 37 ok/1 fail (app.js DOM-only); CSS braces balanced. CACHE_NAME
   → v61.
+
+### Background push reminders (SW v62)
+User wanted reminders that still fire when the app is closed, and approved a
+server-assisted Web Push design after a research pass. No DB/schema/backup
+change (still DB v3, backup v4). The client stays dependency-free; the only
+new dependency (`web-push`) is server-side.
+- **Research conclusions**: Vercel's built-in cron on Hobby is capped at
+  ~1×/day, so an external scheduler is required → GitHub Actions
+  `*/5 * * * *` is free and sufficient. Web Push itself is free/unlimited.
+  Desktop browsers deliver push only while the browser is running (fully
+  closed queues until reopen); Android delivers fully closed via FCM. The
+  browser's push service wakes the service worker, so notifications are
+  genuinely background.
+- **Client** (`js/core/push.js`, new): hardcoded `VAPID_PUBLIC_KEY`;
+  pure `buildReminderPlan(tasks, doneByDate, {from, days})` (14-day horizon,
+  `reminderTime || startTime`, `appliesOnWeekday` filter, skips tasks already
+  completed that day, epoch-ms `at`, `date_taskId` ids, sorted, localized
+  body); `buildTodayPlan`, `supportsPush`, `enablePush` (permission →
+  subscribe → persist → upload), `disablePush` (unsubscribe + server clear),
+  `uploadPlan`, `initPush` (boot safety net), `sendTestPush`.
+- **metaRepo** (`js/db/metaRepo.js`): `get/setPushEnabled`,
+  `get/setDeviceId` (auto `crypto.randomUUID()`), `get/setPushSubscription`.
+- **Server** (`api/_upstash.js`, `api/plan.js`, `api/due.js`): Upstash Redis
+  REST helpers; `POST /api/plan` stores `dt:sub:<id>` + `dt:plan:<id>` and
+  registers `dt:devices` (null subscription clears the device);
+  `GET /api/due` authorizes via `Authorization: Bearer CRON_SECRET`,
+  sends due plan entries with `web-push`, rewrites the remaining plan, and
+  drops dead subscriptions on 404/410; `?test=<deviceId>` sends one manual
+  test (device id acts as the token). Deploy requires Vercel env
+  `UPSTASH_REST_URL`, `UPSTASH_REST_TOKEN`, `VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET`; GitHub repo secret
+  `CRON_SECRET` and repo variable `APP_URL`.
+- **Schedule pushed to the client**: plan re-uploads on boot (`initPush`),
+  after each Home completion, on every Tasks render (covers add/edit/
+  delete/reactivate), after a Task Detail reminder edit, and on the
+  midnight-rollover interval. Home/Tasks/TaskDetail import `uploadPlan`
+  (best-effort `.catch(() => {})`).
+- **Service worker** (`service-worker.js`): `push` → `showNotification`
+  (icon/badge 192, `tag` = plan id so a re-fire replaces rather than
+  duplicates), `notificationclick` → focus or `openWindow("/")`,
+  `pushsubscriptionchange` → `postMessage({type:"dt-push-sub-changed"})`
+  which `app.js` turns into another `initPush()`. `push.js` added to
+  `APP_SHELL`; `CACHE_NAME` → v62.
+- **Settings UI** (`js/ui/screenSettings.js`): new "Push Reminders" section
+  between Reminders and Sound — enable/disable toggle, a "Send Test
+  Notification" button when enabled, a desktop/Android expectation note,
+  and a status line instead of the toggle when `supportsPush()` is false.
+- **Root `package.json`** (new, `"type": "module"`): declares `web-push`;
+  `api/` functions are ESM (`import webpush from "web-push"`). `.gitignore`
+  already covers `node_modules/` and `.env*`.
+- **GitHub Actions** (`.github/workflows/cron.yml`, new): scheduled ping +
+  `workflow_dispatch`, robust to a missing secret.
+- **Modulepreload** (`index.html`): boot graph grew 23 → **24** links
+  (`js/core/push.js`).
+- **Harness** (`test/verify5.mjs`): +12 assertions (112 → **124**) for the
+  planner; `test/linkall.mjs` lists `js/core/push.js` → "38 ok, 1 fail".
+- Verified: `node --check` all edited JS; verify5 ALL VERIFIED (124);
+  linkall 38 ok/1 fail (app.js DOM-only); CSS braces balanced; root
+  `package.json` is valid JSON. One-time maintainer setup (Upstash DB,
+  VAPID keys via `npx web-push generate-vapid-keys`, env/secrets) is
+  documented in the README v62 note. CACHE_NAME → v62.

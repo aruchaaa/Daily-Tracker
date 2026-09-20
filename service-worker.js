@@ -6,7 +6,7 @@
 // pure cache-first strategy, at the cost of a network round-trip on every
 // online load (irrelevant here since there's no real data to wait on).
 
-const CACHE_NAME = "daily-tracker-v61";
+const CACHE_NAME = "daily-tracker-v62";
 
 const APP_SHELL = [
   "./",
@@ -37,6 +37,7 @@ const APP_SHELL = [
   "./js/core/repeatDays.js",
   "./js/core/weeklySummary.js",
   "./js/core/notifications.js",
+  "./js/core/push.js",
   "./js/core/achievements.js",
   "./js/core/sounds.js",
   "./js/core/i18n.js",
@@ -104,5 +105,52 @@ self.addEventListener("fetch", (event) => {
           return undefined;
         })
       )
+  );
+});
+
+// ---- Push reminders (delivered by api/due.js via web-push) ----------------
+
+self.addEventListener("push", (event) => {
+  let data = { title: "Daily Tracker", body: "", id: "daily-tracker", url: "/" };
+  try {
+    if (event.data) Object.assign(data, event.data.json());
+  } catch (err) {
+    // Malformed payload — show the generic title rather than crashing.
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body || data.title,
+      icon: "icons/icon-192.png",
+      badge: "icons/icon-192.png",
+      tag: data.id || "daily-tracker",
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => {
+        for (const client of clients) {
+          if (new URL(client.url).origin === self.location.origin && "focus" in client) {
+            return client.focus();
+          }
+        }
+        return self.clients.openWindow(url);
+      })
+  );
+});
+
+// The browser rotated this device's subscription (e.g. expired keys).
+// Tell the page so it can re-subscribe and re-upload before the next cron run.
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => clients.forEach((client) => client.postMessage({ type: "dt-push-sub-changed" })))
   );
 });

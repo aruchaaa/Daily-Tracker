@@ -144,6 +144,56 @@ export async function setOnboardingDone(value) {
   await txDone(tx);
 }
 
+export async function getPushEnabled() {
+  const db = await openDB();
+  const tx = db.transaction("meta", "readonly");
+  const record = await promisifyRequest(tx.objectStore("meta").get("pushEnabled"));
+  return record ? Boolean(record.value) : false;
+}
+
+export async function setPushEnabled(value) {
+  const db = await openDB();
+  const tx = db.transaction("meta", "readwrite");
+  tx.objectStore("meta").put({ key: "pushEnabled", value: Boolean(value) });
+  await txDone(tx);
+}
+
+/** Stable per-browser device id (uuid), generated once and reused so the
+ *  server can associate a push subscription with this install across
+ *  re-renders. Reinstalling the app / clearing site data makes a new id. */
+export async function getDeviceId() {
+  const db = await openDB();
+  const tx = db.transaction("meta", "readonly");
+  const record = await promisifyRequest(tx.objectStore("meta").get("deviceId"));
+  if (record && record.value) return record.value;
+  const id = crypto.randomUUID();
+  await setDeviceId(id);
+  return id;
+}
+
+export async function setDeviceId(value) {
+  const db = await openDB();
+  const tx = db.transaction("meta", "readwrite");
+  tx.objectStore("meta").put({ key: "deviceId", value });
+  await txDone(tx);
+}
+
+/** PushSubscription as a plain `{ endpoint, keys }` object (same shape as
+ *  `PushSubscription.toJSON()`), or null when no subscription is held. */
+export async function getPushSubscription() {
+  const db = await openDB();
+  const tx = db.transaction("meta", "readonly");
+  const record = await promisifyRequest(tx.objectStore("meta").get("pushSubscription"));
+  return record ? record.value : null;
+}
+
+export async function setPushSubscription(subscription) {
+  const db = await openDB();
+  const tx = db.transaction("meta", "readwrite");
+  tx.objectStore("meta").put({ key: "pushSubscription", value: subscription });
+  await txDone(tx);
+}
+
 export async function getLang() {
   const db = await openDB();
   const tx = db.transaction("meta", "readonly");

@@ -11,6 +11,7 @@ import { el, buildLevelPanel, buildEmptyState, buildProgressRing, formatTimeRang
 import { showToast } from "./toast.js";
 import { confettiBurst } from "./confetti.js";
 import { t } from "../core/i18n.js";
+import { uploadPlan } from "../core/push.js";
 
 const BACKUP_REMINDER_DAYS = 7;
 
@@ -226,6 +227,7 @@ function buildCheckboxRow(task, isCompleted, progress, container, justCheckedId)
             justLeveledUp,
             justCheckedId: result.action === "added" ? task.id : null,
           });
+          uploadPlan().catch(() => {}); // a done task shouldn't still ring
         } catch (e) {
           playError();
           showToast(t("home.togglingFailed") + ": " + e.message, "error");

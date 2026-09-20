@@ -29,6 +29,7 @@ const modules = [
   "js/core/repeatDays.js",
   "js/core/weeklySummary.js",
   "js/core/notifications.js",
+  "js/core/push.js",
   "js/core/achievements.js",
   "js/core/sounds.js",
   "js/core/i18n.js",

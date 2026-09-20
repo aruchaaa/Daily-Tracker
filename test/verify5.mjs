@@ -80,6 +80,7 @@ const i18n = await import(base + "js/core/i18n.js");
 const repeatDays = await import(base + "js/core/repeatDays.js");
 const weeklySummary = await import(base + "js/core/weeklySummary.js");
 const monthlyReport = await import(base + "js/core/monthlyReport.js");
+const push = await import(base + "js/core/push.js");
 
 let fail = 0;
 const assert = (cond, msg) => { console.log((cond ? "PASS" : "FAIL") + ": " + msg); if (!cond) fail++; };
@@ -458,6 +459,38 @@ assert(allCsv.includes("2026-08-20") && allCsv.includes("Gym"), "all-history CSV
 c = new FakeNode("div");
 await screenHome.renderHome(c);
 assert(Boolean(findNode(c, "home-yesterday")), "Home shows the always-visible yesterday recap pill");
+
+// ---- Push reminder planner ----------------------------------------------------------
+const pushFrom = new Date(2026, 8, 14, 7, 0, 0); // Monday 07:00 local
+const pTasks = [
+  { id: "a", name: "Gym", startTime: "08:00" },
+  { id: "b", name: "Read", startTime: "06:00" },
+  { id: "c", name: "Call", reminderTime: "09:00", startTime: "20:00" },
+  { id: "d", name: "MonOnly", startTime: "10:00", repeatDays: [1] },
+];
+const pPlan = push.buildReminderPlan(pTasks, {}, { from: pushFrom, days: 1 });
+assert(pPlan.length === 3, "planner skips tasks whose reminder time already passed");
+assert(pPlan.every((e) => e.at > pushFrom.getTime()), "all planned reminders are in the future");
+assert(pPlan[0].at === new Date(2026, 8, 14, 8, 0, 0).getTime(), "plan is sorted ascending by fire time");
+assert(pPlan[0].body.includes("Gym"), "plan body carries the task name");
+assert(
+  pPlan.some((e) => e.body.includes("Call") && e.at === new Date(2026, 8, 14, 9, 0, 0).getTime()),
+  "reminderTime overrides startTime"
+);
+assert(pPlan.some((e) => e.body.includes("MonOnly")), "task repeating on the window's weekday is planned");
+assert(
+  push.buildReminderPlan([{ id: "d", name: "MonOnly", startTime: "10:00", repeatDays: [1] }], {}, { from: new Date(2026, 8, 15, 0, 0, 0), days: 1 }).length === 0,
+  "task not repeating on that weekday is skipped"
+);
+assert(
+  push.buildReminderPlan([{ id: "a", name: "Gym", startTime: "08:00" }], { "2026-09-14": new Set(["a"]) }, { from: pushFrom, days: 1 }).length === 0,
+  "task already completed today is not planned"
+);
+const pMulti = push.buildReminderPlan([{ id: "a", name: "Gym", startTime: "08:00" }], {}, { from: pushFrom, days: 3 });
+assert(pMulti.length === 3, "one reminder per day across the horizon");
+assert(pMulti[0].id === "2026-09-14_a", "plan id is date_taskId");
+assert(push.VAPID_PUBLIC_KEY.startsWith("B") && push.VAPID_PUBLIC_KEY.length > 80, "a VAPID public key is baked in");
+assert(push.supportsPush() === false, "push feature detection is false in Node");
 
 console.log(fail === 0 ? "ALL VERIFIED" : `${fail} FAILURES`);
 process.exit(fail ? 1 : 0);

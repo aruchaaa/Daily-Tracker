@@ -1,0 +1,24 @@
+name: reminder-cron
+
+on:
+  schedule:
+    # Every 5 minutes — GitHub Actions' minimum interval. Vercel's built-in
+    # cron is only daily, so external pinging is required for real reminders.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  fire-due-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping due-reminders endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          URL="${APP_URL:-https://levelupdailytracker.vercel.app}"
+          if [ -n "${CRON_SECRET}" ]; then
+            curl -fsS -m 120 -H "Authorization: Bearer ${CRON_SECRET}" "${URL}/api/due" || echo "due endpoint non-2xx (reschedule will retry)"
+          else
+            echo "CRON_SECRET not set — nothing to do"
+          fi

@@ -1,6 +1,7 @@
 import { loadAndApplyTheme } from "./core/theme.js";
 import { playNav } from "./core/sounds.js";
 import { scheduleTodayReminders } from "./core/notifications.js";
+import { initPush } from "./core/push.js";
 import { getTodayDateString } from "./utils.js";
 import { captureInstallPrompt, onInstallPromptReady } from "./ui/installPrompt.js";
 import { setLang as setI18nLang, t } from "./core/i18n.js";
@@ -107,6 +108,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     await router();
     registerServiceWorker();
     scheduleTodayReminders(); // fires only if enabled + permission granted
+    initPush(); // re-arms the push subscription + server-side reminder plan
   } finally {
     // Always let the splash go, even if booting throws — a stuck loading
     // overlay is worse than a raw error toast.
@@ -120,6 +122,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (today !== trackedDate) {
       trackedDate = today;
       scheduleTodayReminders();
+      initPush();
     }
   }, 60_000);
 });
@@ -154,6 +157,12 @@ function registerServiceWorker() {
       if (hasReloaded) return;
       hasReloaded = true;
       window.location.reload();
+    });
+
+    // The browser rotated this device's push subscription (stale endpoint);
+    // re-subscribe and re-upload the plan so reminders keep arriving.
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "dt-push-sub-changed") initPush();
     });
   }
 }

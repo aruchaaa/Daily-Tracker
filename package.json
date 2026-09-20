@@ -1,0 +1,13 @@
+{
+  "name": "daily-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Serverless helpers for Daily Tracker push reminders (Vercel Functions). The app itself stays zero-dependency; this installs web-push only for the /api functions.",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

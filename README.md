@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v61`. The app also auto-reloads itself once when a newer
+`daily-tracker-v62`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,25 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v62)
+
+- **Push reminders that work while the app is closed**: a new Settings
+  section enables real Web Push. The browser uploads a 14-day reminder plan
+  (each task's `reminderTime`, falling back to its `startTime`, repeat-day
+  filtered, minus tasks already done today) to a tiny Vercel function backed
+  by Upstash Redis. A GitHub Actions cron pings the endpoint every 5 minutes,
+  which sends any due notifications through the browser's push service to
+  every subscribed device. The old in-app reminders stay as an offline
+  fallback that fires while the tab is open. Reminder times are re-uploaded
+  on every app open, task change, completion, and midnight rollover.
+- Server-side pieces (not shipped to visitors, but required once for the
+  maintainer): Vercel env `UPSTASH_REST_URL`, `UPSTASH_REST_TOKEN`,
+  `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET`;
+  GitHub repo secret `CRON_SECRET` and repo variable `APP_URL`. The repo now
+  has a root `package.json` (`"type": "module"`) whose only dependency is
+  `web-push`, used by `api/plan.js` and `api/due.js`; the client stays
+  dependency-free.
 
 ## What's new (cache v61)
 

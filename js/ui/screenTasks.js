@@ -7,6 +7,7 @@ import { playSave, playError, playToggle, playDelete, playUndo, playOpen } from 
 import { el, buildEmptyState, formatTimeRange, repeatLabel } from "./components.js";
 import { showConfirmDialog, showToast } from "./toast.js";
 import { t, dayShortName } from "../core/i18n.js";
+import { uploadPlan } from "../core/push.js";
 
 export async function renderTasks(container) {
   container.innerHTML = "";
@@ -38,6 +39,7 @@ export async function renderTasks(container) {
     buildAddForm(container),
     list
   );
+  uploadPlan().catch(() => {}); // task times/active state may have changed the plan
 }
 
 function buildAddForm(container) {

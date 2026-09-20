@@ -6,6 +6,7 @@ import { getTodayDateString } from "../utils.js";
 import { hasRepeatDays } from "../core/repeatDays.js";
 import { playSave, playError } from "../core/sounds.js";
 import { t } from "../core/i18n.js";
+import { uploadPlan } from "../core/push.js";
 import { el, buildHeatmap, buildEmptyState, statCard, formatTimeRange, repeatLabel } from "./components.js";
 import { showToast } from "./toast.js";
 
@@ -105,6 +106,7 @@ function buildReminderCard(task) {
         playSave();
         showToast(input.value ? t("detail.reminderSet", { time: input.value }) : t("detail.reminderCleared"));
         scheduleTodayReminders(); // re-arm today's timers with the new time
+        uploadPlan().catch(() => {}); // re-upload the server-side plan too
       } catch (e) {
         playError();
         showToast(t("detail.reminderFailed") + ": " + e.message, "error");

@@ -1,6 +1,7 @@
 import { exportBackup, importBackup, importBackupMerge, clearAllData, copyBackupToClipboard } from "../backup/backupManager.js";
 import { THEMES, setTheme, setCustomAccent } from "../core/theme.js";
 import { enableReminders, disableReminders } from "../core/notifications.js";
+import { enablePush, disablePush, sendTestPush, supportsPush } from "../core/push.js";
 import * as metaRepo from "../db/metaRepo.js";
 import { playClick, playSave, playError, playToggle, playDelete, playUndo } from "../core/sounds.js";
 import { el } from "./components.js";
@@ -11,11 +12,12 @@ import { t, setLang as setI18nLang, getLang } from "../core/i18n.js";
 export async function renderSettings(container) {
   container.innerHTML = "";
 
-  const [currentTheme, currentAccent, remindersEnabled, soundEnabled] = await Promise.all([
+  const [currentTheme, currentAccent, remindersEnabled, soundEnabled, pushEnabled] = await Promise.all([
     metaRepo.getTheme(),
     metaRepo.getCustomAccent(),
     metaRepo.getRemindersEnabled(),
     metaRepo.getSoundEnabled(),
+    metaRepo.getPushEnabled(),
   ]);
   const statusMsg = el("p", { class: "settings-status" });
 
@@ -149,6 +151,7 @@ export async function renderSettings(container) {
     buildThemeSection(currentTheme, container),
     buildAccentSection(currentAccent, container),
     buildRemindersSection(remindersEnabled, container),
+    buildPushSection(pushEnabled, container),
     buildSoundsSection(soundEnabled, container),
     el("div", { class: "settings-section" }, [
       el("h3", { text: t("settings.export") }),
@@ -300,6 +303,74 @@ function buildRemindersSection(enabled, container) {
     }),
     btn,
   ]);
+}
+
+function buildPushSection(enabled, container) {
+  if (!supportsPush()) {
+    return el("div", { class: "settings-section" }, [
+      el("h3", { text: t("settings.push") }),
+      el("p", { class: "settings-status", text: t("settings.pushUnsupported") }),
+    ]);
+  }
+
+  const btn = el("button", {
+    class: `btn ${enabled ? "" : "btn--primary"}`,
+    type: "button",
+    text: enabled ? t("settings.pushOn") : t("settings.pushOff"),
+    onclick: async () => {
+      try {
+        if (enabled) {
+          await disablePush();
+          playToggle();
+          showToast(t("settings.pushDisabledMsg"));
+          renderSettings(container);
+          return;
+        }
+        const ok = await enablePush();
+        if (ok) {
+          playToggle();
+          showToast(t("settings.pushEnabledMsg"), "success");
+        } else {
+          playError();
+          showToast(t("settings.pushPermissionDenied"), "error");
+        }
+        renderSettings(container);
+      } catch (err) {
+        playError();
+        showToast(t("settings.pushFailed") + ": " + err.message, "error");
+      }
+    },
+  });
+
+  const children = [
+    el("h3", { text: t("settings.push") }),
+    el("p", { class: "settings-desc", text: t("settings.pushDesc") }),
+    btn,
+  ];
+
+  if (enabled) {
+    children.push(
+      el("button", {
+        class: "btn",
+        type: "button",
+        text: t("settings.pushTest"),
+        onclick: async () => {
+          try {
+            await sendTestPush();
+            playSave();
+            showToast(t("settings.pushTestSending"), "success");
+          } catch (err) {
+            playError();
+            showToast(t("settings.pushTestFailed") + ": " + err.message, "error");
+          }
+        },
+      })
+    );
+  }
+
+  children.push(el("p", { class: "settings-desc", text: t("settings.pushGuide") }));
+
+  return el("div", { class: "settings-section" }, children);
 }
 
 function buildSoundsSection(enabled, container) {
