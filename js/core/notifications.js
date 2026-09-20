@@ -7,14 +7,45 @@ import { nudgeTimesForDate } from "./push.js";
 import { t } from "./i18n.js";
 
 /**
- * Schedule reminders for today's tasks. Each task can carry its own
- * `reminderTime` (set on the task detail screen); scheduled tasks without
- * one fall back to their `startTime`, so existing behavior is unchanged.
- * Realistically scoped: timers only fire while the app is open (no
- * background/periodic sync), and only when the user has granted
- * notification permission and enabled the feature in Settings.
+ * In-app reminder timers. Realistically scoped: timers only fire while the
+ * app is open (no background/periodic sync), and only when the user has
+ * granted notification permission and enabled Reminders in Settings. As soon
+ * as background Push is enabled we stand down entirely — the push service
+ * already delivers to an open or closed app, so scheduling here too would
+ * show every reminder twice.
  */
 const timers = new Set();
+
+/**
+ * Pure helper (no DOM — unit-testable): the in-app notifications still due
+ * later today. `done` is a Set of taskIds already completed today. Tasks
+ * without a completion are the ones that can still ring; tasks with no
+ * reminder/start time are ignored. Nudges are generic (no task names).
+ * Each entry: `{ at, title, body, taskId, nudge }`.
+ */
+export function buildInAppNotifications(tasks, done, now, nudgeTimes = []) {
+  const out = [];
+
+  for (const task of tasks) {
+    if (done.has(task.id)) continue;
+    const time = task.reminderTime || task.startTime;
+    if (!time) continue;
+    const [h, m] = time.split(":").map(Number);
+    if (!Number.isInteger(h) || !Number.isInteger(m)) continue;
+    const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0).getTime();
+    if (at <= now.getTime()) continue;
+    out.push({ at, title: t("push.title"), body: task.name, taskId: task.id, nudge: false });
+  }
+
+  for (const time of nudgeTimes) {
+    const [h, m] = time.split(":").map(Number);
+    const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0).getTime();
+    if (at <= now.getTime()) continue;
+    out.push({ at, title: t("nudge.title"), body: t("nudge.body"), taskId: null, nudge: true });
+  }
+
+  return out;
+}
 
 export async function scheduleTodayReminders() {
   try {
@@ -24,60 +55,34 @@ export async function scheduleTodayReminders() {
     if (!("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
     if (!(await metaRepo.getRemindersEnabled())) return;
+    // Push covers both open and closed app — never schedule the same
+    // reminder twice. (Re-armed when Push is toggled off.)
+    if (await metaRepo.getPushEnabled()) return;
 
     const today = getTodayDateString();
     const tasks = (await tasksRepo.getActiveTasks()).filter((task) => appliesOnWeekday(task, today));
+    const completed = await completionsRepo.getCompletionsForDate(today);
+    const done = new Set(completed.map((c) => c.taskId));
     const now = new Date();
 
-    for (const task of tasks) {
-      const time = task.reminderTime || task.startTime;
-      if (!time) continue;
-      const [h, m] = time.split(":").map(Number);
-      if (h === undefined || m === undefined) continue;
-
-      const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
-      const delay = at - now;
-      if (delay <= 0) continue; // already passed today
-
-      const name = task.name;
-      timers.add(
-        setTimeout(() => {
-          try {
-            new Notification(t("push.title"), {
-              body: name,
-              icon: "icons/icon-192.png",
-            });
-          } catch (err) {
-            console.warn("Notification failed:", err);
-          }
-        }, delay)
-      );
-    }
-
-    // Three generic daily nudges (morning / afternoon / evening) on the same
-    // deterministic random minutes as the push plan. At fire time we re-check
-    // the day's tasks so a nudge is skipped once everything is done.
-    for (const time of nudgeTimesForDate(today)) {
-      const [h, m] = time.split(":").map(Number);
-      const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
-      const delay = at - now;
-      if (delay <= 0) continue; // already passed today
-
+    for (const note of buildInAppNotifications(tasks, done, now, nudgeTimesForDate(today))) {
       timers.add(
         setTimeout(async () => {
           try {
+            // Re-check at fire time: the task may have been completed (or
+            // removed / deactivated) since this timer was armed.
             const fresh = (await tasksRepo.getActiveTasks()).filter((task) => appliesOnWeekday(task, today));
-            const completed = await completionsRepo.getCompletionsForDate(today);
-            const done = new Set(completed.map((c) => c.taskId));
-            if (!fresh.some((task) => !done.has(task.id))) return;
-            new Notification(t("nudge.title"), {
-              body: t("nudge.body"),
-              icon: "icons/icon-192.png",
-            });
+            const doneNow = new Set((await completionsRepo.getCompletionsForDate(today)).map((c) => c.taskId));
+            if (note.nudge) {
+              if (!fresh.some((task) => !doneNow.has(task.id))) return;
+            } else if (!fresh.some((task) => task.id === note.taskId) || doneNow.has(note.taskId)) {
+              return;
+            }
+            new Notification(note.title, { body: note.body, icon: "icons/icon-192.png" });
           } catch (err) {
-            console.warn("Nudge notification failed:", err);
+            console.warn("Notification failed:", err);
           }
-        }, delay)
+        }, Math.max(0, note.at - now.getTime()))
       );
     }
   } catch (err) {

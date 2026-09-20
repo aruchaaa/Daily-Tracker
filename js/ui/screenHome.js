@@ -12,6 +12,7 @@ import { showToast } from "./toast.js";
 import { confettiBurst } from "./confetti.js";
 import { t } from "../core/i18n.js";
 import { uploadPlan } from "../core/push.js";
+import { scheduleTodayReminders } from "../core/notifications.js";
 
 const BACKUP_REMINDER_DAYS = 7;
 
@@ -228,6 +229,7 @@ function buildCheckboxRow(task, isCompleted, progress, container, justCheckedId)
             justCheckedId: result.action === "added" ? task.id : null,
           });
           uploadPlan().catch(() => {}); // a done task shouldn't still ring
+          scheduleTodayReminders(); // re-arm in-app timers (or clear the stale one)
         } catch (e) {
           playError();
           showToast(t("home.togglingFailed") + ": " + e.message, "error");

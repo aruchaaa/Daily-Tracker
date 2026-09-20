@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v63`). The manifest is
+  reference in `README.md` (currently `v64`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -111,7 +111,10 @@ daily-tracker/
     │   ├── sleepTrend.js     last-N-days sleep series
     │   ├── achievements.js   20 declarative badges, computeStats, evaluate, state
 │   ├── notifications.js  in-app reminder timers (reminderTime || startTime,
-│   │                     body = task name) + the 3 daily generic nudges
+│   │                     body = task name) + the 3 daily generic nudges;
+│   │                     pure buildInAppNotifications(); stands down while
+│   │                     push is enabled (no duplicate notifications); each
+│   │                     timer re-checks completion/removal at fire time
 │   ├── push.js           Web Push core: VAPID public key const, pure
 │   │                     buildReminderPlan (reminderTime/startTime, repeat-day
 │   │                     filtered, skips done, 14-day horizon, epoch-ms;
@@ -166,7 +169,7 @@ daily-tracker/
 ├── package.json            root manifest ("type": "module") — single dep
 │                           `web-push`, used only by api/; client stays dep-free
 ├── test/                  Node regression harness (lives in repo so Temp
-                          cleanups can't wipe it): verify5.mjs (133 asserts),
+                          cleanups can't wipe it): verify5.mjs (140 asserts),
                           linkall.mjs (38 ok + app.js), package.json
                           installs fake-indexeddb
 ```
@@ -619,7 +622,7 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   `fake-indexeddb` with an in-memory DB and stubbed `document`/`el`.
 - Sound calls don't need stubbing: `sounds.js` `ctx()` returns null when
   there is no AudioContext (as in Node), so every effect no-ops safely.
-- Current assertion count is **133** (hard-tier seeded 503-day range +
+- Current assertion count is **140** (hard-tier seeded 503-day range +
   backfilled 40-day tail, the 12-assertion day-record block added at SW
   v36, the 2-assertion badge-i18n regression block added at SW v44, the
   17-assertion install block added at SW v55: the Install App button
@@ -645,7 +648,12 @@ A read-through audit of every module; fixes applied (no DB or schema change):
   adds the day's three nudges, the nudge body is generic (no task names),
   nudges are skipped once all of today's tasks are done and on days with
   no tasks, only appear when requested, and the per-task body is just the
-  task name). Don't
+  task name), and the 7-assertion in-app/de-dup block added at SW v64:
+  `buildInAppNotifications` schedules a pending task with the task name as
+  body, skips a completed task, a task with no time, and a time already
+  past today, and includes the generic nudge; while push is enabled
+  `scheduleTodayReminders` arms zero timers (no duplicates) and re-arms once
+  push is disabled (via a `setTimeout` spy). Don't
   assert exact intra-group row order in the day-record tests: sortOrder
   uses `Date.now()` so rapid `createTask` calls can tie, and `getAllTasks`
   tie-breaks by uuid key order — assert membership/sets and rely on the
@@ -1661,3 +1669,31 @@ the wording was generic. No DB/schema/backup change (still DB v3, backup v4).
 - Verified: `node --check` all edited JS; verify5 ALL VERIFIED (133);
   linkall 38 ok/1 fail (app.js DOM-only); CSS untouched; README "What's new
   (cache v63)" added. CACHE_NAME → v63.
+
+### Reminder accuracy + no duplicate notifications (SW v64)
+Follow-up audit of the v63 notification path: the server pipeline was
+verified live (VAPID pair matches, `/api/due` 401 without / 200 with the
+secret, `/api/plan` 200, cron run green, Upstash provisioned), but two
+client-side flaws surfaced. No DB/schema/backup change (still DB v3,
+backup v4).
+- **Duplicate in-app + push fixed** (`js/core/notifications.js`):
+  `scheduleTodayReminders()` now returns early when `metaRepo.getPushEnabled()`
+  is true — push already delivers to an open *and* closed app, so arming the
+  in-app timer too showed every reminder twice. Settings' Push toggle calls
+  `scheduleTodayReminders()` after enabling *and* disabling so in-app
+  reminders re-arm the moment push goes off.
+- **Stale in-app timers fixed**: new pure `buildInAppNotifications(tasks,
+  done, now, nudgeTimes)` (exported, unit-testable) builds the still-due
+  notifications; each timer now re-checks at fire time that its task still
+  exists/applies and is not completed (nudges re-check "anything pending").
+  `renderHome` (after a check/uncheck) and `renderTasks` (add/edit/delete)
+  now call `scheduleTodayReminders()` so a finished task stops ringing and a
+  newly added one arms immediately.
+- **Docs**: README v64 notes the GitHub ~60-day scheduled-workflow
+  auto-disable, cron latency, and the per-platform delivery limits.
+- **Harness** (`test/verify5.mjs`): +7 assertions (133 → **140**) — the
+  pure builder (pending + body, completed/no-time/past skipped, nudge
+  included) and, via a `setTimeout`/`Notification` spy, zero timers while
+  push is enabled then re-arm once disabled.
+- Verified: `node --check` all edited JS; verify5 ALL VERIFIED (140);
+  linkall 38 ok/1 fail (app.js DOM-only); CSS untouched. CACHE_NAME → v64.

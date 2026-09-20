@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v63`. The app also auto-reloads itself once when a newer
+`daily-tracker-v64`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,22 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v64)
+
+- **No more duplicate notifications**: when background Push is on, the in-app
+  timers now stand down (push already covers an open or closed app), so a
+  reminder never fires twice. Turning Push off re-arms the in-app reminders.
+- **In-app reminders stay accurate**: finishing a task now clears its pending
+  in-app reminder, and adding/editing/removing tasks re-arms today's timers —
+  and each timer re-checks the task's completion at fire time before showing.
+- **Heads-up on background delivery limits**: the GitHub Actions cron that
+  drives background push runs every ~5 minutes (so delivery can be a few
+  minutes late and, under load, delayed further). GitHub also disables
+  scheduled workflows after ~60 days of repository inactivity — re-enable it
+  from the Actions tab if push ever goes quiet. Desktop push only arrives
+  while the browser is running; on Android it arrives even when the app is
+  closed; on iOS the PWA must first be added to the Home Screen.
 
 ## What's new (cache v63)
 

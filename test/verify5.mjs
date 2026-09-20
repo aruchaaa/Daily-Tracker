@@ -81,6 +81,7 @@ const repeatDays = await import(base + "js/core/repeatDays.js");
 const weeklySummary = await import(base + "js/core/weeklySummary.js");
 const monthlyReport = await import(base + "js/core/monthlyReport.js");
 const push = await import(base + "js/core/push.js");
+const notifications = await import(base + "js/core/notifications.js");
 
 let fail = 0;
 const assert = (cond, msg) => { console.log((cond ? "PASS" : "FAIL") + ": " + msg); if (!cond) fail++; };
@@ -524,6 +525,59 @@ assert(
   "nudges only appear when explicitly requested"
 );
 assert(i18n.t("push.body", { name: "Gym" }) === "Gym", "per-task reminder body is just the task name");
+
+// ---- In-app reminders + push de-duplication -----------------------------------------
+const fixedNow = new Date(2026, 8, 14, 6, 0, 0); // Monday 06:00 local
+const iaTasks = [
+  { id: "x", name: "Alpha", reminderTime: "09:00" },
+  { id: "y", name: "Done", startTime: "10:00" },
+  { id: "z", name: "NoTime" },
+  { id: "w", name: "Past", startTime: "05:00" },
+];
+const iaPlan = notifications.buildInAppNotifications(iaTasks, new Set(["y"]), fixedNow, ["08:00"]);
+assert(iaPlan.some((n) => n.taskId === "x" && n.body === "Alpha"), "in-app: pending task schedules with the task name as body");
+assert(!iaPlan.some((n) => n.taskId === "y"), "in-app: completed task is skipped");
+assert(!iaPlan.some((n) => n.taskId === "z"), "in-app: task without a time is skipped");
+assert(!iaPlan.some((n) => n.taskId === "w"), "in-app: a reminder time already past today is skipped");
+assert(iaPlan.some((n) => n.nudge && n.body === i18n.t("nudge.body")), "in-app: the generic nudge is included");
+
+function futureHHMM() {
+  const now = new Date();
+  const soon = new Date(now.getTime() + 60 * 60000);
+  if (soon.getDate() === now.getDate() && soon.getMonth() === now.getMonth()) {
+    return `${String(soon.getHours()).padStart(2, "0")}:${String(soon.getMinutes()).padStart(2, "0")}`;
+  }
+  return "23:59";
+}
+
+const realSetTimeout = globalThis.setTimeout;
+const realClearTimeout = globalThis.clearTimeout;
+const realNotification = globalThis.Notification;
+globalThis.window.Notification = class {};
+globalThis.Notification = class {};
+globalThis.Notification.permission = "granted";
+let scheduledTimers = [];
+try {
+  globalThis.setTimeout = (fn, delay) => {
+    const id = { fn, delay };
+    scheduledTimers.push(id);
+    return id;
+  };
+  globalThis.clearTimeout = () => {};
+  await metaRepo.setRemindersEnabled(true);
+  await tasksRepo.createTask({ name: "LaterTask", expValue: 10, startTime: futureHHMM() });
+  await metaRepo.setPushEnabled(true);
+  await notifications.scheduleTodayReminders();
+  assert(scheduledTimers.length === 0, "in-app reminders stand down while push is enabled (no duplicate notifications)");
+  await metaRepo.setPushEnabled(false);
+  await notifications.scheduleTodayReminders();
+  assert(scheduledTimers.length > 0, "in-app reminders re-arm once push is disabled");
+} finally {
+  globalThis.setTimeout = realSetTimeout;
+  globalThis.clearTimeout = realClearTimeout;
+  globalThis.Notification = realNotification;
+  await metaRepo.setPushEnabled(false);
+}
 
 console.log(fail === 0 ? "ALL VERIFIED" : `${fail} FAILURES`);
 process.exit(fail ? 1 : 0);

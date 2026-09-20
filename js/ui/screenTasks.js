@@ -8,6 +8,7 @@ import { el, buildEmptyState, formatTimeRange, repeatLabel } from "./components.
 import { showConfirmDialog, showToast } from "./toast.js";
 import { t, dayShortName } from "../core/i18n.js";
 import { uploadPlan } from "../core/push.js";
+import { scheduleTodayReminders } from "../core/notifications.js";
 
 export async function renderTasks(container) {
   container.innerHTML = "";
@@ -40,6 +41,7 @@ export async function renderTasks(container) {
     list
   );
   uploadPlan().catch(() => {}); // task times/active state may have changed the plan
+  scheduleTodayReminders(); // newly added / edited / removed tasks re-arm in-app timers
 }
 
 function buildAddForm(container) {

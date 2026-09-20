@@ -1,6 +1,6 @@
 import { exportBackup, importBackup, importBackupMerge, clearAllData, copyBackupToClipboard } from "../backup/backupManager.js";
 import { THEMES, setTheme, setCustomAccent } from "../core/theme.js";
-import { enableReminders, disableReminders } from "../core/notifications.js";
+import { enableReminders, disableReminders, scheduleTodayReminders } from "../core/notifications.js";
 import { enablePush, disablePush, sendTestPush, supportsPush } from "../core/push.js";
 import * as metaRepo from "../db/metaRepo.js";
 import { playClick, playSave, playError, playToggle, playDelete, playUndo } from "../core/sounds.js";
@@ -321,12 +321,14 @@ function buildPushSection(enabled, container) {
       try {
         if (enabled) {
           await disablePush();
+          await scheduleTodayReminders(); // push off -> in-app reminders re-arm
           playToggle();
           showToast(t("settings.pushDisabledMsg"));
           renderSettings(container);
           return;
         }
         const ok = await enablePush();
+        await scheduleTodayReminders(); // push on -> in-app stands down (no doubles)
         if (ok) {
           playToggle();
           showToast(t("settings.pushEnabledMsg"), "success");
