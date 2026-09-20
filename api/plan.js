@@ -1,4 +1,4 @@
-import { get, set, del } from "./_upstash.js";
+import { get, set, del, upstashConfigured } from "./_upstash.js";
 
 const DEVICES_KEY = "dt:devices";
 
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
-  if (!process.env.UPSTASH_REST_URL || !process.env.UPSTASH_REST_TOKEN) {
+  if (!upstashConfigured()) {
     return res.status(500).json({ error: "upstash env not configured" });
   }
 

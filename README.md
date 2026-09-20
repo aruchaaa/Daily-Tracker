@@ -244,6 +244,9 @@ you're curious, but in short: your data is safe across this update.
 - **Reminder text is the task name**: per-task reminders now show just the
   task's name as the notification body (previously "Time for: …"), so the
   notification is instantly recognizable at a glance.
+- Server storage now also accepts the env names provisioned by the Vercel
+  **Upstash for Redis** integration (`KV_REST_API_URL` / `KV_REST_API_TOKEN`)
+  in addition to manually-set `UPSTASH_REST_URL` / `UPSTASH_REST_TOKEN`.
 
 ## What's new (cache v62)
 

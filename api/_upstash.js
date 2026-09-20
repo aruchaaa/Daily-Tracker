@@ -1,5 +1,12 @@
-const UPSTASH_URL = process.env.UPSTASH_REST_URL;
-const UPSTASH_TOKEN = process.env.UPSTASH_REST_TOKEN;
+// Accept either the manually-set Upstash REST names or the names provisioned
+// by the Vercel "Upstash for Redis" integration (KV_REST_API_*).
+const UPSTASH_URL = process.env.UPSTASH_REST_URL || process.env.KV_REST_API_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+
+/** True when a REST endpoint + token are available, whichever naming won. */
+export function upstashConfigured() {
+  return Boolean(UPSTASH_URL && UPSTASH_TOKEN);
+}
 
 function headers() {
   return {

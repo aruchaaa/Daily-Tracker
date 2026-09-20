@@ -154,7 +154,9 @@ daily-tracker/
         └── csvExport.js      pure buildMonthCSV + exportMonthCSV (UTF-8 BOM)
 ├── api/                    Vercel Functions (the ONLY server-side code)
 │   ├── _upstash.js         Upstash Redis REST helpers (get/set/del) — leading
-│   │                       underscore keeps it a module, not an endpoint
+│   │                       underscore keeps it a module, not an endpoint;
+│   │                       accepts UPSTASH_REST_* or the Vercel integration's
+│   │                       KV_REST_API_* names; exports upstashConfigured()
 │   ├── plan.js             POST {deviceId, subscription, plan} store/clear
 │   └── due.js              GET (Bearer CRON_SECRET) sends due pushes via
 │                           web-push; ?test=<deviceId> sends a manual test
