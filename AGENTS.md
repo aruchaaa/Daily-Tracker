@@ -1647,6 +1647,13 @@ the wording was generic. No DB/schema/backup change (still DB v3, backup v4).
   from `t("push.title")`. New keys `nudge.title` / `nudge.body` (EN + ID).
 - Background delivery still requires the v62 Vercel/GitHub env setup; when
   push is off, nudges still fire in-app while the tab is open.
+- **Server storage via the Vercel Upstash integration**: `api/_upstash.js`
+  now reads `KV_REST_API_URL` / `KV_REST_API_TOKEN` as a fallback to the
+  manual `UPSTASH_REST_URL` / `UPSTASH_REST_TOKEN` names and exports
+  `upstashConfigured()`; both `api/plan.js` and `api/due.js` use it (fixes
+  the case where the integration provisioned the KV_* names but the functions
+  demanded the manual ones). The `dailytrackerv1` project is provisioned so a
+  `vercel integration add upstash/upstash-kv` resource supplies the Redis env.
 - **Harness** (`test/verify5.mjs`): +9 assertions (124 → **133**) — three
   nudges a day, each inside its window, deterministic per date, `nudges:true`
   adds them, nudge body stays generic, skipped when all done, none on a
