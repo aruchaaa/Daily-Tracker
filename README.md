@@ -212,7 +212,7 @@ still import (they just restore with the extras empty).
 
 The service worker fetches fresh files over the network first and only
 falls back to its cache when offline. Current cache name:
-`daily-tracker-v64`. The app also auto-reloads itself once when a newer
+`daily-tracker-v65`. The app also auto-reloads itself once when a newer
 service worker takes over, so most future updates should apply on their
 own — but that only works once this version's code has loaded at least
 once. If you ever see a blank content area under a working nav bar,
@@ -229,6 +229,12 @@ This update also bumps the local database schema (v1 → v2, adding
 against a pre-existing v1 database to confirm no existing tasks,
 completions, or EXP get touched — see the project's test history if
 you're curious, but in short: your data is safe across this update.
+
+## What's new (cache v65)
+
+- **Settings spacing tidy-up**: the Push Reminders section now has equal
+  breathing room above and below its buttons (12px both sides), so the
+  toggle/Test buttons no longer sit flush against the guide text beneath.
 
 ## What's new (cache v64)
 

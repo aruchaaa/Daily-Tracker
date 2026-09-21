@@ -1150,6 +1150,10 @@
   margin-bottom: 12px;
 }
 
+.settings-section .btn + .settings-desc {
+  margin-top: 12px;
+}
+
 .about-list {
   display: flex;
   flex-direction: column;

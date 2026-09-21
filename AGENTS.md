@@ -54,7 +54,7 @@ Ad-hoc checks used after edits:
 - `Invoke-WebRequest http://localhost:8080/` → expect HTTP 200.
 - After any change that touches the precache shell or JS/CSS, bump
   `CACHE_NAME` in `service-worker.js` **and** the matching `daily-tracker-vN`
-  reference in `README.md` (currently `v64`). The manifest is
+  reference in `README.md` (currently `v65`). The manifest is
   `manifest.webmanifest` (served as `application/manifest+json`); `vercel.json`
   keeps the service worker and manifest free of CDN caching so updates and
   installability checks always see the newest files.
@@ -1697,3 +1697,18 @@ backup v4).
   push is enabled then re-arm once disabled.
 - Verified: `node --check` all edited JS; verify5 ALL VERIFIED (140);
   linkall 38 ok/1 fail (app.js DOM-only); CSS untouched. CACHE_NAME → v64.
+
+### Settings button spacing symmetry (SW v65)
+User report: the Push section's toggle/Test button sat flush against the
+guide text beneath it while the text above had 12px. CSS-only fix (no JS/
+DB/schema/backup change):
+- **`css/components.css`**: new `.settings-section .btn + .settings-desc
+  { margin-top: 12px; }` — the push guide (the only `.settings-desc` in
+  Settings that directly follows a `.btn`) now matches the 12px gap of the
+  description above the button, so the buttons sit symmetrically. All other
+  settings sections are unaffected (their descs never follow a btn). Also
+  confirmed live end-to-end push: cron run logs show
+  `{"devices":2,"sent":0,...,"ok":true}` — subscriptions are registered and
+  the 5-minute pipeline is delivering.
+- Verified: CSS brace balance; verify5 (140, untouched); linkall 38 ok/1
+  fail (app.js DOM-only). CACHE_NAME → v65.
